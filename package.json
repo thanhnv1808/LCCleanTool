@@ -1,7 +1,7 @@
 {
-  "name": "clean-tool",
+  "name": "maccleantool",
   "version": "1.0.0",
-  "description": "CleanTool - macOS Disk Cleaner",
+  "description": "MacCleanTool - macOS Disk Cleaner",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -31,8 +31,8 @@
     "vite-plugin-electron-renderer": "^0.14.5"
   },
   "build": {
-    "appId": "com.cleantool.app",
-    "productName": "CleanTool",
+    "appId": "com.maccleantool.app",
+    "productName": "MacCleanTool",
     "directories": {
       "output": "release"
     },
@@ -42,7 +42,9 @@
     ],
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.icns",
+      "identity": null
     }
   }
 }
