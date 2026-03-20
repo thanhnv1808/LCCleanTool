@@ -1,3 +1,8 @@
+declare module '*.png' {
+  const src: string
+  export default src
+}
+
 export interface DiskInfo {
   total: number; used: number; free: number; percent: number; mount: string
 }

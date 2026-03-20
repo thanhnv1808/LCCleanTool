@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import iconSrc from '/icon.png'
 import {
   LayoutDashboard, Database, Terminal, Puzzle,
   FileSearch, ScrollText, Download, Settings,
@@ -86,7 +87,7 @@ const App: React.FC = () => {
         {/* Logo */}
         <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #1a1a1a', marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <img src="/icon.png" alt="CleanTool" style={{ width: 32, height: 32, borderRadius: 8 }} />
+            <img src={iconSrc} alt="CleanTool" style={{ width: 32, height: 32, borderRadius: 8 }} />
             <div>
               <div style={{ color: '#e0e0e0', fontWeight: 700, fontSize: 13, letterSpacing: 0.3 }}>
                 Clean<span style={{ color: '#06b6d4' }}>Tool</span>
