@@ -89,26 +89,6 @@ const api = {
     return () => ipcRenderer.removeListener('scan:progress', handler)
   },
 
-  // Tray
-  openMainWindow: (): Promise<void> =>
-    ipcRenderer.invoke('tray:openMainWindow'),
-  onTrayFocus: (cb: () => void) => {
-    const handler = () => cb()
-    ipcRenderer.on('tray:focus', handler)
-    return () => ipcRenderer.removeListener('tray:focus', handler)
-  },
-
-  // Scan Cache (tray)
-  getScanCache: (): Promise<{ result: QuickScanResult; timestamp: number } | null> =>
-    ipcRenderer.invoke('cache:getScan'),
-  saveScanCache: (result: QuickScanResult): Promise<{ result: QuickScanResult; timestamp: number }> =>
-    ipcRenderer.invoke('cache:saveScan', result),
-  onCacheCleared: (cb: () => void) => {
-    const handler = () => cb()
-    ipcRenderer.on('tray:cacheCleared', handler)
-    return () => ipcRenderer.removeListener('tray:cacheCleared', handler)
-  },
-
   // Results Cache (main app detailed entries)
   getResultsCache: (): Promise<Record<string, { entries: unknown[]; timestamp: number }>> =>
     ipcRenderer.invoke('cache:getResults'),

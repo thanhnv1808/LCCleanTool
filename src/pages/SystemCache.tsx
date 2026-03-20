@@ -2,10 +2,13 @@ import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Database, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
+import { useTranslation } from '../i18n/useTranslation'
 import type { ScanEntry } from '../types/electron'
 
 const SystemCache: React.FC = () => {
   const { cacheEntries, setCacheEntries, removeCacheEntries, scanning, setScanning, scanProgress, scanTimestamps } = useAppStore()
+  const lang = useAppStore((s) => s.language)
+  const t = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -98,12 +101,12 @@ const SystemCache: React.FC = () => {
       <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <Database size={15} color="#a855f7" strokeWidth={1.5} />
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>Cache Hệ thống</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>{t.systemCache.title}</h2>
         </div>
         <div style={{ color: '#a855f799', fontSize: 11, fontFamily: 'monospace', paddingLeft: 23 }}>
-          ~/Library/Caches — {cacheEntries.length} mục, tổng {formatBytes(totalSize)}
+          ~/Library/Caches — {cacheEntries.length} {t.common.items}, {t.common.total} {formatBytes(totalSize)}
           {scanTimestamps['caches'] && !isScanning && (
-            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['caches'])}</span>
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['caches'], lang)}</span>
           )}
         </div>
       </div>
@@ -115,13 +118,13 @@ const SystemCache: React.FC = () => {
       }}>
         <Btn onClick={doScan} disabled={isScanning} color="#a855f7">
           <Search size={13} />
-          {isScanning ? 'Đang quét...' : 'Quét cache'}
+          {isScanning ? t.common.scanning : t.systemCache.scanBtn}
         </Btn>
 
         {selected.size > 0 && (
           <Btn onClick={doClean} disabled={cleaning} color="#ef4444">
             <Trash2 size={13} />
-            {cleaning ? 'Đang xóa...' : `Xóa vào Trash (${formatBytes(selectedSize)})`}
+            {cleaning ? t.common.deleting : `${t.common.moveToTrash} (${formatBytes(selectedSize)})`}
           </Btn>
         )}
 
@@ -134,15 +137,15 @@ const SystemCache: React.FC = () => {
         )}
         {lastResult && (
           <div style={{ color: '#22c55e', fontSize: 11 }}>
-            ✓ Đã giải phóng {formatBytes(lastResult.freed)}
-            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} lỗi</span>}
+            ✓ {t.common.freed} {formatBytes(lastResult.freed)}
+            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} {t.common.errors}</span>}
           </div>
         )}
       </div>
 
       {/* ── Table ── */}
       {cacheEntries.length === 0 ? (
-        <EmptyState isScanning={isScanning} onScan={doScan} />
+        <EmptyState isScanning={isScanning} onScan={doScan} t={t.systemCache} tCommon={t.common} />
       ) : (
         <div style={{ flex: 1, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -155,13 +158,13 @@ const SystemCache: React.FC = () => {
                   />
                 </Th>
                 <Th onClick={() => toggleSort('name')} clickable>
-                  <span style={{ display: 'flex', alignItems: 'center' }}>Tên <SortIcon col="name" /></span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>{t.common.name} <SortIcon col="name" /></span>
                 </Th>
                 <Th width={110} onClick={() => toggleSort('size')} clickable align="right">
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Dung lượng <SortIcon col="size" /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{t.common.size} <SortIcon col="size" /></span>
                 </Th>
                 <Th width={120} onClick={() => toggleSort('mtime')} clickable align="right">
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Lần cuối <SortIcon col="mtime" /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{t.common.lastModified} <SortIcon col="mtime" /></span>
                 </Th>
                 <Th width={44} />
               </tr>
@@ -174,6 +177,7 @@ const SystemCache: React.FC = () => {
                   selected={selected.has(entry.path)}
                   onToggle={() => toggleSelect(entry.path)}
                   onReveal={() => window.electronAPI.showItemInFolder(entry.path)}
+                  lang={lang}
                 />
               ))}
             </tbody>
@@ -187,14 +191,14 @@ const SystemCache: React.FC = () => {
           padding: '6px 24px', borderTop: '1px solid #1a1a1a', flexShrink: 0,
           display: 'flex', gap: 16, alignItems: 'center',
         }}>
-          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{sorted.length} mục</span>
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{sorted.length} {t.common.items}</span>
           {selected.size > 0 && (
             <span style={{ color: '#06b6d4', fontSize: 11 }}>
-              Đã chọn {selected.size} ({formatBytes(selectedSize)})
+              {t.common.selected} {selected.size} ({formatBytes(selectedSize)})
             </span>
           )}
           <span style={{ flex: 1 }} />
-          <span style={{ color: '#3d3d3d', fontSize: 11 }}>⚠ Chuyển vào Trash — có thể khôi phục</span>
+          <span style={{ color: '#3d3d3d', fontSize: 11 }}>{t.common.trashWarning}</span>
         </div>
       )}
     </div>
@@ -242,9 +246,9 @@ function Th({ children, width, onClick, clickable, align }: {
   )
 }
 
-function CacheRow({ entry, selected, onToggle, onReveal }: {
+function CacheRow({ entry, selected, onToggle, onReveal, lang }: {
   entry: ScanEntry; selected: boolean
-  onToggle: () => void; onReveal: () => void
+  onToggle: () => void; onReveal: () => void; lang: import('../i18n/translations').Lang
 }) {
   return (
     <tr
@@ -269,13 +273,12 @@ function CacheRow({ entry, selected, onToggle, onReveal }: {
         <SizeBar size={entry.size} />
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right', color: '#6b6b6b', fontSize: 11 }}>
-        {timeAgo(entry.mtime)}
+        {timeAgo(entry.mtime, lang)}
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <button
           onClick={onReveal}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}
-          title="Hiện trong Finder"
         >
           <FolderOpen size={13} />
         </button>
@@ -294,7 +297,11 @@ function SizeBar({ size }: { size: number }) {
   )
 }
 
-function EmptyState({ isScanning, onScan }: { isScanning: boolean; onScan: () => void }) {
+function EmptyState({ isScanning, onScan, t, tCommon }: {
+  isScanning: boolean; onScan: () => void
+  t: { scanningMsg: string; clickToScan: string; scanBtn: string }
+  tCommon: { scanNow: string }
+}) {
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
@@ -303,18 +310,17 @@ function EmptyState({ isScanning, onScan }: { isScanning: boolean; onScan: () =>
       {isScanning ? (
         <>
           <Database size={44} color="#a855f750" strokeWidth={1} />
-          <div style={{ fontSize: 13, color: '#666' }}>Đang quét cache...</div>
+          <div style={{ fontSize: 13, color: '#666' }}>{t.scanningMsg}</div>
         </>
       ) : (
         <>
           <Database size={48} color="#2a2a2a" strokeWidth={1} />
-          <div style={{ fontSize: 14, color: '#666' }}>Chưa quét</div>
-          <div style={{ fontSize: 12, color: '#4a4a4a' }}>Nhấn "Quét cache" để bắt đầu</div>
+          <div style={{ fontSize: 14, color: '#666' }}>{t.clickToScan}</div>
           <button
             onClick={onScan}
             style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#a855f7', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <Search size={13} /> Quét ngay
+            <Search size={13} /> {tCommon.scanNow}
           </button>
         </>
       )}

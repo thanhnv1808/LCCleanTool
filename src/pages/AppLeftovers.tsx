@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Puzzle, Filter } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
+import { useTranslation } from '../i18n/useTranslation'
 import type { LeftoverEntry } from '../types/electron'
 
 type Section = 'appSupport' | 'containers' | 'groupContainers'
@@ -14,6 +15,8 @@ const SECTION_LABELS: Record<Section, string> = {
 
 const AppLeftovers: React.FC = () => {
   const { leftoverEntries, setLeftoverEntries, removeLeftoverEntries, scanning, setScanning, scanProgress, scanTimestamps } = useAppStore()
+  const lang = useAppStore((s) => s.language)
+  const t = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -85,7 +88,7 @@ const AppLeftovers: React.FC = () => {
         <p style={{ color: '#f9731677', fontSize: 11, fontFamily: 'monospace', marginBottom: 16, paddingLeft: 23 }}>
           ~/Library/Application Support · Containers · Group Containers
           {scanTimestamps['leftovers'] && !isScanning && (
-            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['leftovers'])}</span>
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['leftovers'], lang)}</span>
           )}
         </p>
 
@@ -118,13 +121,13 @@ const AppLeftovers: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
         <Btn onClick={doScan} disabled={isScanning} color="#f97316">
           <Search size={13} />
-          {isScanning ? 'Đang quét...' : 'Quét Leftovers'}
+          {isScanning ? t.common.scanning : t.leftovers.scanBtn}
         </Btn>
 
         {selected.size > 0 && (
           <Btn onClick={doClean} disabled={cleaning} color="#ef4444">
             <Trash2 size={13} />
-            {cleaning ? 'Đang xóa...' : `Xóa vào Trash (${formatBytes(selectedSize)})`}
+            {cleaning ? t.common.deleting : `${t.common.moveToTrash} (${formatBytes(selectedSize)})`}
           </Btn>
         )}
 
@@ -139,7 +142,7 @@ const AppLeftovers: React.FC = () => {
             }}
           >
             <Filter size={11} />
-            Chỉ orphan {orphanCount > 0 && `(${orphanCount})`}
+            {t.leftovers.orphanOnly} {orphanCount > 0 && `(${orphanCount})`}
           </button>
         )}
 
@@ -152,15 +155,15 @@ const AppLeftovers: React.FC = () => {
         )}
         {lastResult && (
           <div style={{ color: '#22c55e', fontSize: 11 }}>
-            ✓ Đã giải phóng {formatBytes(lastResult.freed)}
-            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} lỗi</span>}
+            ✓ {t.common.freed} {formatBytes(lastResult.freed)}
+            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} {t.common.errors}</span>}
           </div>
         )}
       </div>
 
       {/* Content */}
       {filtered.length === 0 ? (
-        <EmptyState isScanning={isScanning} onScan={doScan} />
+        <EmptyState isScanning={isScanning} onScan={doScan} t={t.leftovers} tCommon={t.common} />
       ) : (
         <div style={{ flex: 1, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -170,9 +173,9 @@ const AppLeftovers: React.FC = () => {
                   <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} />
                 </Th>
                 <Th>App / Bundle</Th>
-                <Th width={90} align="right">Dung lượng</Th>
-                <Th width={80} align="center">Trạng thái</Th>
-                <Th width={110} align="right">Lần cuối</Th>
+                <Th width={90} align="right">{t.common.size}</Th>
+                <Th width={80} align="center">{t.leftovers.status}</Th>
+                <Th width={110} align="right">{t.common.lastModified}</Th>
                 <Th width={44} />
               </tr>
             </thead>
@@ -184,6 +187,8 @@ const AppLeftovers: React.FC = () => {
                   selected={selected.has(entry.path)}
                   onToggle={() => toggle(entry.path)}
                   onReveal={() => window.electronAPI.showItemInFolder(entry.path)}
+                  lang={lang}
+                  activeLabel={t.leftovers.active}
                 />
               ))}
             </tbody>
@@ -194,19 +199,20 @@ const AppLeftovers: React.FC = () => {
       {/* Status bar */}
       {filtered.length > 0 && (
         <div style={{ padding: '6px 24px', borderTop: '1px solid #1a1a1a', flexShrink: 0, display: 'flex', gap: 16 }}>
-          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{filtered.length} mục</span>
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{filtered.length} {t.common.items}</span>
           {orphanCount > 0 && <span style={{ color: '#f97316', fontSize: 11 }}>{orphanCount} orphan</span>}
-          {selected.size > 0 && <span style={{ color: '#06b6d4', fontSize: 11 }}>Đã chọn {selected.size} ({formatBytes(selectedSize)})</span>}
+          {selected.size > 0 && <span style={{ color: '#06b6d4', fontSize: 11 }}>{t.common.selected} {selected.size} ({formatBytes(selectedSize)})</span>}
           <span style={{ flex: 1 }} />
-          <span style={{ color: '#3d3d3d', fontSize: 11 }}>⚠ Chuyển vào Trash</span>
+          <span style={{ color: '#3d3d3d', fontSize: 11 }}>{t.common.trashWarning}</span>
         </div>
       )}
     </div>
   )
 }
 
-function LeftoverRow({ entry, selected, onToggle, onReveal }: {
+function LeftoverRow({ entry, selected, onToggle, onReveal, lang, activeLabel }: {
   entry: LeftoverEntry; selected: boolean; onToggle: () => void; onReveal: () => void
+  lang: import('../i18n/translations').Lang; activeLabel: string
 }) {
   const mb = entry.size / 1024 / 1024
   const sizeColor = mb > 500 ? '#ef4444' : mb > 100 ? '#f59e0b' : mb > 10 ? '#06b6d4' : '#666'
@@ -234,11 +240,11 @@ function LeftoverRow({ entry, selected, onToggle, onReveal }: {
         {entry.isOrphan ? (
           <span style={{ color: '#f97316', fontSize: 10, background: '#f9731618', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>orphan</span>
         ) : (
-          <span style={{ color: '#4a4a4a', fontSize: 10 }}>aktif</span>
+          <span style={{ color: '#4a4a4a', fontSize: 10 }}>{activeLabel}</span>
         )}
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right', color: '#6b6b6b', fontSize: 11 }}>
-        {timeAgo(entry.mtime)}
+        {timeAgo(entry.mtime, lang)}
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <button onClick={onReveal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}>
@@ -270,21 +276,25 @@ function Btn({ children, onClick, disabled, color }: {
   )
 }
 
-function EmptyState({ isScanning, onScan }: { isScanning: boolean; onScan: () => void }) {
+function EmptyState({ isScanning, onScan, t, tCommon }: {
+  isScanning: boolean; onScan: () => void
+  t: { scanning: string; findLeftovers: string; scanBtn: string }
+  tCommon: { notScanned: string; scanNow: string }
+}) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
       {isScanning ? (
         <>
           <div style={{ animation: 'spin 1.5s linear infinite' }}><Search size={40} color="#f9731650" strokeWidth={1} /></div>
-          <div style={{ fontSize: 13, color: '#666' }}>Đang quét thư viện ứng dụng...</div>
+          <div style={{ fontSize: 13, color: '#666' }}>{t.scanning}</div>
         </>
       ) : (
         <>
           <Puzzle size={48} color="#2a2a2a" strokeWidth={1} />
-          <div style={{ fontSize: 14, color: '#666' }}>Chưa quét</div>
-          <div style={{ fontSize: 12, color: '#4a4a4a' }}>Tìm dữ liệu app còn sót lại sau khi xóa</div>
+          <div style={{ fontSize: 14, color: '#666' }}>{tCommon.notScanned}</div>
+          <div style={{ fontSize: 12, color: '#4a4a4a' }}>{t.findLeftovers}</div>
           <button onClick={onScan} style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#f97316', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Search size={13} /> Quét ngay
+            <Search size={13} /> {tCommon.scanNow}
           </button>
         </>
       )}

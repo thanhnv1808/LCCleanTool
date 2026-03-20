@@ -1,44 +1,68 @@
-# CleanTool — macOS Disk Cleaner
+<div align="center">
+  <img src="build/icon.png" width="96" alt="CleanTool icon" />
+  <h1>CleanTool</h1>
+  <p>A lightweight macOS disk cleaner built with Electron, React, and TypeScript.<br/>Everything moves to <strong>Trash</strong> — nothing is permanently deleted.</p>
 
-A lightweight, fast macOS disk cleaner built with Electron + React + TypeScript. Clean up junk files safely — everything goes to **Trash**, never permanently deleted.
+  <p>
+    <img src="https://img.shields.io/badge/platform-macOS%2011%2B-lightgrey?logo=apple" />
+    <img src="https://img.shields.io/badge/electron-30-47848f?logo=electron" />
+    <img src="https://img.shields.io/badge/react-18-61dafb?logo=react" />
+    <img src="https://img.shields.io/badge/typescript-5-3178c6?logo=typescript" />
+    <img src="https://img.shields.io/badge/license-MIT-green" />
+  </p>
+</div>
 
-![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
-![Electron](https://img.shields.io/badge/electron-30-blue)
-![React](https://img.shields.io/badge/react-18-61dafb)
-![TypeScript](https://img.shields.io/badge/typescript-5-3178c6)
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="screenshot/01-dashboard.png" alt="Dashboard" /></td>
+    <td><img src="screenshot/02-system-cache.png" alt="System Cache" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Dashboard — disk usage at a glance</em></td>
+    <td align="center"><em>System Cache — sort and clean app caches</em></td>
+  </tr>
+  <tr>
+    <td><img src="screenshot/03-dev-tools.png" alt="Dev Tools" /></td>
+    <td><img src="screenshot/04-app-left.png" alt="App Leftovers" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Dev Tools — package manager & node_modules caches</em></td>
+    <td align="center"><em>App Leftovers — orphaned data from uninstalled apps</em></td>
+  </tr>
+</table>
 
 ---
 
 ## Features
 
 ### Dashboard
-Real-time disk usage overview showing total, used, and free space with a color-coded progress bar (green → amber → red as disk fills). One-click **Quick Scan** estimates reclaimable space across all categories instantly.
+Real-time disk usage with total, used, and free space. A color-coded bar shifts from green to amber to red as the disk fills. One-click **Quick Scan** estimates reclaimable space across every category instantly.
 
 ### System Cache
-Scans `~/Library/Caches` and lists every subdirectory with its size and last-modified date. Sort by name, size, or date. Select individual entries or all, then move to Trash in one click.
+Scans `~/Library/Caches` and lists each subdirectory with its size and last-modified date. Sort by name, size, or date. Select individual items or all at once, then move them to Trash in a single click.
 
 ### Dev Tools
-Two sub-sections for developers:
+Two focused sub-sections for developers:
 
-**Package Manager Caches** — detects and sizes caches for:
-- npm, Yarn, pnpm, Bun
-- Homebrew
-- Xcode DerivedData, iOS DeviceSupport, Simulator runtimes
-- CocoaPods
-- pip, Gradle, Cargo (Rust), Go modules
+**Package Manager Caches** — automatically detects and reports the size of caches for:
+`npm` · `Yarn` · `pnpm` · `Bun` · `Homebrew` · `Xcode DerivedData` · `iOS DeviceSupport` · `Simulator runtimes` · `CocoaPods` · `pip` · `Gradle` · `Cargo` · `Go modules`
 
-**node_modules Finder** — recursively searches configured directories (Documents, Projects, Desktop, etc.) for `node_modules` folders across all your projects. Shows size and last-used date so you can safely remove dependencies from old projects.
+**node_modules Finder** — recursively searches your configured directories for `node_modules` folders across all projects. Shows each folder's size and last-used date so you can safely remove stale dependencies from old projects.
 
 ### App Leftovers
-Scans three macOS library locations:
+Scans:
 - `~/Library/Application Support`
 - `~/Library/Containers`
 - `~/Library/Group Containers`
 
-Compares entries against installed apps (`/Applications` + `~/Applications`) and flags **orphan** entries — leftover data from apps that have already been uninstalled. Orphans are visually highlighted so you can clean them up with confidence.
+Compares every entry against your installed apps (`/Applications` + `~/Applications`) and flags **orphans** — data left behind by apps you have already uninstalled. Orphaned entries are clearly highlighted so you can clean them up with confidence.
 
 ### Large Files
-Searches your entire home folder for files exceeding a configurable size threshold (default: 100 MB). Results are filtered by type:
+Searches your entire home folder for files above a configurable size threshold (default: 100 MB). Results are grouped by type:
 
 | Type | Extensions |
 |------|-----------|
@@ -48,31 +72,42 @@ Searches your entire home folder for files exceeding a configurable size thresho
 | Document | pdf, doc, docx, ppt, pptx, xls, xlsx, pages, numbers, key |
 | Image | jpg, jpeg, png, gif, bmp, tiff, heic, raw, psd |
 
-Sort by size or date. Click the folder icon to reveal any file in Finder.
+Sort by size or date. Click the folder icon next to any entry to reveal it in Finder.
 
 ### Logs & Reports
-Scans three log locations:
+Scans:
 - `~/Library/Logs` — user application logs
 - `~/Library/Logs/DiagnosticReports` — crash reports
 - `/Library/Logs` — system-level logs
 
-Shows age in days so you can identify stale logs that are safe to remove.
+Displays age in days so stale, safe-to-remove logs are easy to identify.
 
 ### Downloads
-Lists everything in `~/Downloads` with file type detection, size, and age in days. Useful for clearing out old installers, archives, and media files that accumulate over time.
+Lists everything in `~/Downloads` with file-type detection, size, and age in days — perfect for clearing out accumulated installers, archives, and media files.
 
 ### Settings
-Configure CleanTool's behavior:
 - **Scan roots** — directories to search for `node_modules` (one path per line)
-- **Large file threshold** — minimum file size in MB for the Large Files scan
-- **Unused days threshold** — files older than this many days are flagged for review
+- **Large file threshold** — minimum size in MB for the Large Files scan
+- **Unused days threshold** — files older than this are flagged as stale
 
 ---
 
 ## Safety
 
 > **CleanTool never permanently deletes files.**
-> All removals move items to the macOS **Trash**. You can recover anything at any time from Trash in Finder.
+> Every removal moves items to the macOS Trash. You can restore anything at any time from Trash in Finder.
+
+---
+
+## Installation
+
+1. Download the latest `.dmg` from the [Releases](../../releases) page.
+2. Open the `.dmg`, then drag **CleanTool** to your Applications folder.
+3. If macOS shows a security warning, run this command once in Terminal to activate the app:
+   ```bash
+   xattr -cr /Applications/MacCleanTool.app
+   ```
+4. Launch CleanTool from Applications or Spotlight.
 
 ---
 
@@ -83,37 +118,38 @@ Configure CleanTool's behavior:
 
 ---
 
-## Installation
-
-Download the latest `.dmg` from the [Releases](../../releases) page, open it, and drag **CleanTool** to your Applications folder.
-
----
-
 ## Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Run in development mode
+# Run in development mode (hot reload)
 npm run dev
 
 # Build distributable (.dmg)
 npm run electron:build
-
-xattr -cr /Applications/MacCleanTool.app
 ```
 
-### Tech stack
-- **Electron 30** — native macOS integration
-- **React 18** + **TypeScript 5** — UI
-- **Zustand** — state management
-- **Vite** — bundler
-- **Tailwind CSS** — utility styles
-- **electron-builder** — packaging & distribution
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Shell | Electron 30 |
+| UI | React 18 + TypeScript 5 |
+| State | Zustand |
+| Bundler | Vite |
+| Styles | Tailwind CSS |
+| Packaging | electron-builder |
+
+---
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)

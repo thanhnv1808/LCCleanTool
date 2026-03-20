@@ -1,4 +1,4 @@
-import { execFile } from 'child_process'
+import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
 import os from 'os'
@@ -210,28 +210,46 @@ export async function findNodeModules(
   roots: string[],
   onProgress?: (found: number, current: string) => void,
 ): Promise<ScanEntry[]> {
+  if (roots.length === 0) return []
+
   const results: ScanEntry[] = []
 
-  try {
-    const { stdout } = await execAsync('find', [
+  // Use spawn to stream results — avoids losing data on timeout
+  const foundPaths = await new Promise<string[]>((resolve) => {
+    const paths: string[] = []
+    const args = [
       ...roots,
       '-name', 'node_modules',
       '-type', 'd',
       '-prune',
-    ], { timeout: 60000 })
+    ]
+    const proc = spawn('find', args)
+    let buffer = ''
+    proc.stdout.on('data', (chunk: Buffer) => {
+      buffer += chunk.toString()
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        const p = line.trim()
+        if (p) paths.push(p)
+      }
+    })
+    proc.on('close', () => {
+      if (buffer.trim()) paths.push(buffer.trim())
+      resolve(paths)
+    })
+    proc.on('error', () => resolve(paths))
+  })
 
-    const paths = stdout.trim().split('\n').filter(Boolean)
-
-    for (let i = 0; i < paths.length; i++) {
-      const p = paths[i]
-      onProgress?.(i + 1, p)
-      const size = await getDirSize(p)
-      if (size === 0) continue
-      let mtime = 0
-      try { mtime = fs.statSync(p).mtimeMs } catch { /* skip */ }
-      results.push({ name: path.basename(path.dirname(p)), path: p, size, mtime, type: 'dir' })
-    }
-  } catch { /* find might fail or timeout */ }
+  for (let i = 0; i < foundPaths.length; i++) {
+    const p = foundPaths[i]
+    onProgress?.(i + 1, p)
+    const size = await getDirSize(p)
+    if (size === 0) continue
+    let mtime = 0
+    try { mtime = fs.statSync(p).mtimeMs } catch { /* skip */ }
+    results.push({ name: path.basename(path.dirname(p)), path: p, size, mtime, type: 'dir' })
+  }
 
   return results.sort((a, b) => b.size - a.size)
 }

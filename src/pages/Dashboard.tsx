@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Zap, HardDrive, Database, Terminal, Download, ScrollText } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes } from '../utils/format'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface CategoryCard {
   key: string
@@ -14,6 +15,8 @@ interface CategoryCard {
 
 const Dashboard: React.FC = () => {
   const { diskInfo, quickScan, setQuickScan, setActiveTab } = useAppStore()
+  const lang = useAppStore((s) => s.language)
+  const t = useTranslation()
   const [scanning, setScanning] = useState(false)
   const [lastScan, setLastScan] = useState<number | null>(null)
 
@@ -36,10 +39,10 @@ const Dashboard: React.FC = () => {
   }, [])
 
   const categories: CategoryCard[] = [
-    { key: 'caches',    label: 'Cache Hệ thống', icon: Database,   color: '#a855f7', tab: 'caches',    size: quickScan?.caches ?? null },
-    { key: 'devtools',  label: 'Dev Tools',       icon: Terminal,   color: '#f59e0b', tab: 'devtools',  size: quickScan?.devTools ?? null },
-    { key: 'downloads', label: 'Downloads',       icon: Download,   color: '#22c55e', tab: 'downloads', size: quickScan?.downloads ?? null },
-    { key: 'logs',      label: 'Logs & Reports',  icon: ScrollText, color: '#6b7280', tab: 'logs',      size: quickScan?.logs ?? null },
+    { key: 'caches',    label: t.systemCache.title, icon: Database,   color: '#a855f7', tab: 'caches',    size: quickScan?.caches ?? null },
+    { key: 'devtools',  label: 'Dev Tools',          icon: Terminal,   color: '#f59e0b', tab: 'devtools',  size: quickScan?.devTools ?? null },
+    { key: 'downloads', label: 'Downloads',          icon: Download,   color: '#22c55e', tab: 'downloads', size: quickScan?.downloads ?? null },
+    { key: 'logs',      label: 'Logs & Reports',     icon: ScrollText, color: '#6b7280', tab: 'logs',      size: quickScan?.logs ?? null },
   ]
 
   const used    = diskInfo?.used ?? 0
@@ -53,10 +56,10 @@ const Dashboard: React.FC = () => {
       {/* ── Header ── */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e0e0e0', letterSpacing: -0.3 }}>
-          Tổng quan
+          {t.dashboard.title}
         </h1>
         <p style={{ color: '#5a5a5a', fontSize: 12, marginTop: 4 }}>
-          Phân tích và giải phóng dung lượng macOS
+          {t.dashboard.subtitle}
         </p>
       </div>
 
@@ -67,7 +70,7 @@ const Dashboard: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 16 }}>
           <HardDrive size={13} color="#5a5a5a" strokeWidth={1.5} />
-          <span style={{ color: '#5a5a5a', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Dung lượng ổ đĩa</span>
+          <span style={{ color: '#5a5a5a', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>{t.dashboard.diskUsage}</span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
@@ -78,7 +81,7 @@ const Dashboard: React.FC = () => {
             <span style={{ color: '#5a5a5a', fontSize: 13 }}>/ {formatBytes(total)}</span>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ color: '#5a5a5a', fontSize: 11, marginBottom: 2 }}>Còn trống</div>
+            <div style={{ color: '#5a5a5a', fontSize: 11, marginBottom: 2 }}>{t.dashboard.free}</div>
             <div style={{ fontSize: 20, fontWeight: 600, color: pct > 85 ? '#ef4444' : '#22c55e' }}>
               {formatBytes(free)}
             </div>
@@ -96,8 +99,8 @@ const Dashboard: React.FC = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: 20 }}>
-            <Stat label="Đã dùng" value={`${pct}%`} color={barColor} />
-            <Stat label="Tổng" value={formatBytes(total)} color="#5a5a5a" />
+            <Stat label={t.dashboard.used} value={`${pct}%`} color={barColor} />
+            <Stat label={t.dashboard.total} value={formatBytes(total)} color="#5a5a5a" />
           </div>
           {diskInfo && (
             <div style={{ color: '#383838', fontSize: 10, fontFamily: 'monospace', alignSelf: 'flex-end' }}>
@@ -110,10 +113,10 @@ const Dashboard: React.FC = () => {
       {/* ── Quick Scan ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <div style={{ color: '#e0e0e0', fontSize: 14, fontWeight: 600 }}>Phân tích nhanh</div>
+          <div style={{ color: '#e0e0e0', fontSize: 14, fontWeight: 600 }}>{t.dashboard.quickScan}</div>
           {lastScan && (
             <div style={{ color: '#4a4a4a', fontSize: 11, marginTop: 2 }}>
-              Cập nhật: {new Date(lastScan).toLocaleTimeString('vi-VN')}
+              {t.dashboard.updated} {new Date(lastScan).toLocaleTimeString(lang === 'vi' ? 'vi-VN' : 'en-US')}
             </div>
           )}
         </div>
@@ -131,7 +134,7 @@ const Dashboard: React.FC = () => {
           }}
         >
           <Zap size={13} />
-          {scanning ? 'Đang quét...' : 'Quét nhanh'}
+          {scanning ? t.dashboard.scanning : t.dashboard.quickScan}
         </button>
       </div>
 
@@ -140,8 +143,12 @@ const Dashboard: React.FC = () => {
         {categories.map((cat) => (
           <CategoryCardBtn
             key={cat.key}
-            {...cat}
+            icon={cat.icon}
+            label={cat.label}
+            color={cat.color}
+            size={cat.size}
             scanning={scanning}
+            notScannedLabel={t.common.notScanned}
             onClick={() => setActiveTab(cat.tab as Parameters<typeof setActiveTab>[0])}
           />
         ))}
@@ -155,7 +162,7 @@ const Dashboard: React.FC = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ color: '#22c55e', fontSize: 13 }}>
-            ✓ Có thể giải phóng ước tính
+            {t.dashboard.estimatedFree}
           </div>
           <div style={{ color: '#22c55e', fontSize: 20, fontWeight: 700 }}>
             {formatBytes(quickScan.caches + quickScan.devTools + quickScan.logs)}
@@ -178,9 +185,10 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 interface CategoryCardProps {
   icon: React.ElementType; label: string; color: string
   size: number | null; scanning: boolean; onClick: () => void
+  notScannedLabel: string
 }
 
-function CategoryCardBtn({ icon: Icon, label, color, size, scanning, onClick }: CategoryCardProps) {
+function CategoryCardBtn({ icon: Icon, label, color, size, scanning, onClick, notScannedLabel }: CategoryCardProps) {
   return (
     <button
       onClick={onClick}
@@ -216,7 +224,7 @@ function CategoryCardBtn({ icon: Icon, label, color, size, scanning, onClick }: 
             {formatBytes(size)}
           </div>
         ) : (
-          <div style={{ color: '#4a4a4a', fontSize: 12 }}>Chưa quét</div>
+          <div style={{ color: '#4a4a4a', fontSize: 12 }}>{notScannedLabel}</div>
         )}
       </div>
       <div style={{ color: `${color}55`, fontSize: 16 }}>›</div>

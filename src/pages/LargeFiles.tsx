@@ -2,19 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, FileSearch, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
+import { useTranslation } from '../i18n/useTranslation'
 import type { LargeFileEntry } from '../types/electron'
 
 type FilterType = 'all' | 'video' | 'disk-image' | 'archive' | 'document' | 'image' | 'other'
-
-const TYPE_LABELS: Record<FilterType, string> = {
-  all: 'Tất cả',
-  video: 'Video',
-  'disk-image': 'Disk Image',
-  archive: 'Archive',
-  document: 'Document',
-  image: 'Image',
-  other: 'Khác',
-}
 
 const TYPE_COLOR: Record<string, string> = {
   video: '#a855f7', 'disk-image': '#ef4444', archive: '#f59e0b',
@@ -23,6 +14,8 @@ const TYPE_COLOR: Record<string, string> = {
 
 const LargeFiles: React.FC = () => {
   const { largeFileEntries, setLargeFileEntries, removeLargeFileEntries, scanning, setScanning, scanProgress, settings, scanTimestamps } = useAppStore()
+  const lang = useAppStore((s) => s.language)
+  const t = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -33,6 +26,16 @@ const LargeFiles: React.FC = () => {
   const isScanning = scanning['largeFiles'] ?? false
   const progress = scanProgress['largeFiles']
   const thresholdMB = settings?.largFileThresholdMB ?? 100
+
+  const TYPE_LABELS: Record<FilterType, string> = {
+    all: t.largeFiles.all,
+    video: 'Video',
+    'disk-image': 'Disk Image',
+    archive: 'Archive',
+    document: 'Document',
+    image: 'Image',
+    other: t.largeFiles.other,
+  }
 
   const doScan = async () => {
     setScanning('largeFiles', true)
@@ -84,8 +87,8 @@ const LargeFiles: React.FC = () => {
     [filtered, selected],
   )
 
-  const countByType = (t: FilterType) =>
-    t === 'all' ? largeFileEntries.length : largeFileEntries.filter((e) => e.fileType === t).length
+  const countByType = (tp: FilterType) =>
+    tp === 'all' ? largeFileEntries.length : largeFileEntries.filter((e) => e.fileType === tp).length
 
   const toggleSort = (col: 'size' | 'mtime') => {
     if (sortBy === col) setSortDir((d) => d === 'desc' ? 'asc' : 'desc')
@@ -105,12 +108,12 @@ const LargeFiles: React.FC = () => {
       <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <FileSearch size={15} color="#ef4444" strokeWidth={1.5} />
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>File Lớn</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>{t.largeFiles.title}</h2>
         </div>
         <div style={{ color: '#ef444477', fontSize: 11, fontFamily: 'monospace', paddingLeft: 23 }}>
-          ~ home folder · &gt; {thresholdMB} MB · {largeFileEntries.length} file tìm thấy
+          ~ home folder · &gt; {thresholdMB} MB · {largeFileEntries.length} {t.largeFiles.found}
           {scanTimestamps['largeFiles'] && !isScanning && (
-            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['largeFiles'])}</span>
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['largeFiles'], lang)}</span>
           )}
         </div>
       </div>
@@ -119,13 +122,13 @@ const LargeFiles: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
         <Btn onClick={doScan} disabled={isScanning} color="#ef4444">
           <Search size={13} />
-          {isScanning ? 'Đang quét...' : 'Quét File Lớn'}
+          {isScanning ? t.common.scanning : t.largeFiles.scanBtn}
         </Btn>
 
         {selected.size > 0 && (
           <Btn onClick={doClean} disabled={cleaning} color="#dc2626">
             <Trash2 size={13} />
-            {cleaning ? 'Đang xóa...' : `Xóa vào Trash (${formatBytes(selectedSize)})`}
+            {cleaning ? t.common.deleting : `${t.common.moveToTrash} (${formatBytes(selectedSize)})`}
           </Btn>
         )}
 
@@ -138,8 +141,8 @@ const LargeFiles: React.FC = () => {
         )}
         {lastResult && (
           <div style={{ color: '#22c55e', fontSize: 11 }}>
-            ✓ Đã giải phóng {formatBytes(lastResult.freed)}
-            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} lỗi</span>}
+            ✓ {t.common.freed} {formatBytes(lastResult.freed)}
+            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} {t.common.errors}</span>}
           </div>
         )}
       </div>
@@ -147,22 +150,22 @@ const LargeFiles: React.FC = () => {
       {/* Type filter pills */}
       {largeFileEntries.length > 0 && (
         <div style={{ display: 'flex', gap: 6, padding: '10px 24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0, flexWrap: 'wrap' }}>
-          {(['all', 'video', 'disk-image', 'archive', 'document', 'image', 'other'] as FilterType[]).map((t) => {
-            const cnt = countByType(t)
-            if (t !== 'all' && cnt === 0) return null
-            const isActive = filterType === t
+          {(['all', 'video', 'disk-image', 'archive', 'document', 'image', 'other'] as FilterType[]).map((tp) => {
+            const cnt = countByType(tp)
+            if (tp !== 'all' && cnt === 0) return null
+            const isActive = filterType === tp
             return (
               <button
-                key={t}
-                onClick={() => { setFilterType(t); setSelected(new Set()) }}
+                key={tp}
+                onClick={() => { setFilterType(tp); setSelected(new Set()) }}
                 style={{
                   padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 11,
-                  background: isActive ? (t === 'all' ? '#ef4444' : (TYPE_COLOR[t] ?? '#ef4444')) : '#1d1d1d',
+                  background: isActive ? (tp === 'all' ? '#ef4444' : (TYPE_COLOR[tp] ?? '#ef4444')) : '#1d1d1d',
                   color: isActive ? '#fff' : '#6b6b6b',
                   fontWeight: isActive ? 600 : 400,
                 }}
               >
-                {TYPE_LABELS[t]} {cnt > 0 && <span style={{ opacity: 0.7 }}>({cnt})</span>}
+                {TYPE_LABELS[tp]} {cnt > 0 && <span style={{ opacity: 0.7 }}>({cnt})</span>}
               </button>
             )
           })}
@@ -171,7 +174,7 @@ const LargeFiles: React.FC = () => {
 
       {/* Content */}
       {filtered.length === 0 ? (
-        <EmptyState isScanning={isScanning} onScan={doScan} thresholdMB={thresholdMB} />
+        <EmptyState isScanning={isScanning} onScan={doScan} thresholdMB={thresholdMB} t={t.largeFiles} tCommon={t.common} />
       ) : (
         <div style={{ flex: 1, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -180,13 +183,13 @@ const LargeFiles: React.FC = () => {
                 <th style={thS(40)}>
                   <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} />
                 </th>
-                <th style={thS()}>Tên file</th>
-                <th style={thS(90)}>Loại</th>
+                <th style={thS()}>{t.largeFiles.fileName}</th>
+                <th style={thS(90)}>{t.common.type}</th>
                 <th style={{ ...thS(120), cursor: 'pointer', textAlign: 'right' }} onClick={() => toggleSort('size')}>
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Kích thước <SortIcon col="size" /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{t.largeFiles.sizeCol} <SortIcon col="size" /></span>
                 </th>
                 <th style={{ ...thS(120), cursor: 'pointer', textAlign: 'right' }} onClick={() => toggleSort('mtime')}>
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Lần cuối <SortIcon col="mtime" /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{t.common.lastModified} <SortIcon col="mtime" /></span>
                 </th>
                 <th style={thS(44)} />
               </tr>
@@ -199,6 +202,7 @@ const LargeFiles: React.FC = () => {
                   selected={selected.has(entry.path)}
                   onToggle={() => toggle(entry.path)}
                   onReveal={() => window.electronAPI.showItemInFolder(entry.path)}
+                  lang={lang}
                 />
               ))}
             </tbody>
@@ -209,19 +213,20 @@ const LargeFiles: React.FC = () => {
       {/* Status bar */}
       {filtered.length > 0 && (
         <div style={{ padding: '6px 24px', borderTop: '1px solid #1a1a1a', flexShrink: 0, display: 'flex', gap: 16 }}>
-          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{filtered.length} file</span>
-          <span style={{ color: '#5a5a5a', fontSize: 11 }}>Tổng: {formatBytes(filtered.reduce((s, e) => s + e.size, 0))}</span>
-          {selected.size > 0 && <span style={{ color: '#06b6d4', fontSize: 11 }}>Đã chọn {selected.size} ({formatBytes(selectedSize)})</span>}
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{filtered.length} {t.common.files}</span>
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{t.common.total}: {formatBytes(filtered.reduce((s, e) => s + e.size, 0))}</span>
+          {selected.size > 0 && <span style={{ color: '#06b6d4', fontSize: 11 }}>{t.common.selected} {selected.size} ({formatBytes(selectedSize)})</span>}
           <span style={{ flex: 1 }} />
-          <span style={{ color: '#3d3d3d', fontSize: 11 }}>⚠ Chuyển vào Trash</span>
+          <span style={{ color: '#3d3d3d', fontSize: 11 }}>{t.common.trashWarning}</span>
         </div>
       )}
     </div>
   )
 }
 
-function LargeFileRow({ entry, selected, onToggle, onReveal }: {
+function LargeFileRow({ entry, selected, onToggle, onReveal, lang }: {
   entry: LargeFileEntry; selected: boolean; onToggle: () => void; onReveal: () => void
+  lang: import('../i18n/translations').Lang
 }) {
   const gb = entry.size / 1024 / 1024 / 1024
   const mb = entry.size / 1024 / 1024
@@ -254,7 +259,7 @@ function LargeFileRow({ entry, selected, onToggle, onReveal }: {
         </span>
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right', color: '#6b6b6b', fontSize: 11 }}>
-        {timeAgo(entry.mtime)}
+        {timeAgo(entry.mtime, lang)}
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <button onClick={onReveal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}>
@@ -282,22 +287,26 @@ function Btn({ children, onClick, disabled, color }: {
   )
 }
 
-function EmptyState({ isScanning, onScan, thresholdMB }: { isScanning: boolean; onScan: () => void; thresholdMB: number }) {
+function EmptyState({ isScanning, onScan, thresholdMB, t, tCommon }: {
+  isScanning: boolean; onScan: () => void; thresholdMB: number
+  t: { scanning: string; mayTake: string; findFiles: string; scanBtn: string }
+  tCommon: { notScanned: string; scanNow: string }
+}) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
       {isScanning ? (
         <>
           <div style={{ animation: 'spin 1.5s linear infinite' }}><Search size={40} color="#ef444450" strokeWidth={1} /></div>
-          <div style={{ fontSize: 13, color: '#666' }}>Đang tìm file lớn trong home folder...</div>
-          <div style={{ fontSize: 11, color: '#4a4a4a' }}>Có thể mất 1–2 phút</div>
+          <div style={{ fontSize: 13, color: '#666' }}>{t.scanning}</div>
+          <div style={{ fontSize: 11, color: '#4a4a4a' }}>{t.mayTake}</div>
         </>
       ) : (
         <>
           <FileSearch size={48} color="#2a2a2a" strokeWidth={1} />
-          <div style={{ fontSize: 14, color: '#666' }}>Chưa quét</div>
-          <div style={{ fontSize: 12, color: '#4a4a4a' }}>Tìm file &gt; {thresholdMB} MB trong home folder</div>
+          <div style={{ fontSize: 14, color: '#666' }}>{tCommon.notScanned}</div>
+          <div style={{ fontSize: 12, color: '#4a4a4a' }}>{t.findFiles.replace('{mb}', String(thresholdMB))}</div>
           <button onClick={onScan} style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Search size={13} /> Quét ngay
+            <Search size={13} /> {tCommon.scanNow}
           </button>
         </>
       )}

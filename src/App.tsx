@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react'
 import {
   LayoutDashboard, Database, Terminal, Puzzle,
-  FileSearch, ScrollText, Download, Settings, Brush,
+  FileSearch, ScrollText, Download, Settings,
 } from 'lucide-react'
 import { useAppStore, TabId } from './store/useAppStore'
+import { useTranslation } from './i18n/useTranslation'
 import Dashboard from './pages/Dashboard'
 import SystemCache from './pages/SystemCache'
 import DevTools from './pages/DevTools'
@@ -19,16 +20,6 @@ interface NavItem {
   label: string
   color: string
 }
-
-const NAV: NavItem[] = [
-  { id: 'dashboard',  icon: LayoutDashboard, label: 'Tổng quan',    color: '#06b6d4' },
-  { id: 'caches',     icon: Database,         label: 'Cache HT',     color: '#a855f7' },
-  { id: 'devtools',   icon: Terminal,          label: 'Dev Tools',    color: '#f59e0b' },
-  { id: 'leftovers',  icon: Puzzle,            label: 'App Leftover', color: '#f97316' },
-  { id: 'largefiles', icon: FileSearch,        label: 'File Lớn',     color: '#ef4444' },
-  { id: 'logs',       icon: ScrollText,        label: 'Logs',         color: '#6b7280' },
-  { id: 'downloads',  icon: Download,          label: 'Downloads',    color: '#22c55e' },
-]
 
 function renderPage(tab: TabId) {
   switch (tab) {
@@ -46,6 +37,17 @@ function renderPage(tab: TabId) {
 
 const App: React.FC = () => {
   const { activeTab, setActiveTab, setDiskInfo, setSettings } = useAppStore()
+  const t = useTranslation()
+
+  const NAV: NavItem[] = [
+    { id: 'dashboard',  icon: LayoutDashboard, label: t.nav.dashboard,  color: '#06b6d4' },
+    { id: 'caches',     icon: Database,         label: t.nav.caches,     color: '#a855f7' },
+    { id: 'devtools',   icon: Terminal,          label: t.nav.devtools,   color: '#f59e0b' },
+    { id: 'leftovers',  icon: Puzzle,            label: t.nav.leftovers,  color: '#f97316' },
+    { id: 'largefiles', icon: FileSearch,        label: t.nav.largefiles, color: '#ef4444' },
+    { id: 'logs',       icon: ScrollText,        label: t.nav.logs,       color: '#6b7280' },
+    { id: 'downloads',  icon: Download,          label: t.nav.downloads,  color: '#22c55e' },
+  ]
 
   useEffect(() => {
     window.electronAPI.getDiskInfo().then(setDiskInfo).catch(() => {})
@@ -84,13 +86,7 @@ const App: React.FC = () => {
         {/* Logo */}
         <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #1a1a1a', marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: 'linear-gradient(135deg, #06b6d4 0%, #a855f7 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Brush size={14} color="#fff" strokeWidth={2} />
-            </div>
+            <img src="/icon.png" alt="CleanTool" style={{ width: 32, height: 32, borderRadius: 8 }} />
             <div>
               <div style={{ color: '#e0e0e0', fontWeight: 700, fontSize: 13, letterSpacing: 0.3 }}>
                 Clean<span style={{ color: '#06b6d4' }}>Tool</span>
@@ -150,7 +146,7 @@ const App: React.FC = () => {
             onMouseLeave={(e) => { if (activeTab !== 'settings') e.currentTarget.style.color = '#5a5a5a' }}
           >
             <Settings size={14} strokeWidth={1.5} style={{ flexShrink: 0 }} />
-            <span>Cài đặt</span>
+            <span>{t.nav.settings}</span>
           </button>
           <div style={{ color: '#282828', fontSize: 9, textAlign: 'center', marginTop: 6, fontFamily: 'monospace' }}>
             v1.0.0
