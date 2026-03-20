@@ -1,6 +1,6 @@
 {
   "name": "maccleantool",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MacCleanTool - macOS Disk Cleaner",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -41,7 +41,9 @@
       "dist-electron/**/*"
     ],
     "mac": {
-      "target": "dmg",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
       "category": "public.app-category.utilities",
       "icon": "build/icon.icns",
       "identity": null
