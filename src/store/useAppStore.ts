@@ -21,6 +21,7 @@ interface AppStore {
   settings: AppSettings | null
   scanning: Record<string, boolean>
   scanProgress: Record<string, { current: number; total: number; label: string }>
+  scanTimestamps: Record<string, number>
 
   setActiveTab: (tab: TabId) => void
   setDiskInfo: (info: DiskInfo) => void
@@ -36,6 +37,7 @@ interface AppStore {
   setSettings: (s: AppSettings) => void
   setScanning: (key: string, v: boolean) => void
   setScanProgress: (key: string, p: { current: number; total: number; label: string }) => void
+  setScanTimestamp: (key: string, ts: number) => void
   removeCacheEntries: (paths: string[]) => void
   removeDevEntries: (paths: string[]) => void
   removeNodeModules: (paths: string[]) => void
@@ -60,6 +62,7 @@ export const useAppStore = create<AppStore>((set) => ({
   settings: null,
   scanning: {},
   scanProgress: {},
+  scanTimestamps: {},
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setDiskInfo: (diskInfo) => set({ diskInfo }),
@@ -76,6 +79,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setScanning: (key, v) => set((s) => ({ scanning: { ...s.scanning, [key]: v } })),
   setScanProgress: (key, p) =>
     set((s) => ({ scanProgress: { ...s.scanProgress, [key]: p } })),
+  setScanTimestamp: (key, ts) =>
+    set((s) => ({ scanTimestamps: { ...s.scanTimestamps, [key]: ts } })),
   removeCacheEntries: (paths) =>
     set((s) => ({ cacheEntries: s.cacheEntries.filter((e) => !paths.includes(e.path)) })),
   removeDevEntries: (paths) =>

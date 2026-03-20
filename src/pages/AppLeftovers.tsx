@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Puzzle, Filter } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { formatBytes, timeAgo } from '../utils/format'
+import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
 import type { LeftoverEntry } from '../types/electron'
 
 type Section = 'appSupport' | 'containers' | 'groupContainers'
@@ -13,7 +13,7 @@ const SECTION_LABELS: Record<Section, string> = {
 }
 
 const AppLeftovers: React.FC = () => {
-  const { leftoverEntries, setLeftoverEntries, removeLeftoverEntries, scanning, setScanning, scanProgress } = useAppStore()
+  const { leftoverEntries, setLeftoverEntries, removeLeftoverEntries, scanning, setScanning, scanProgress, scanTimestamps } = useAppStore()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -30,6 +30,8 @@ const AppLeftovers: React.FC = () => {
     try {
       const entries = await window.electronAPI.scanLeftovers()
       setLeftoverEntries(entries)
+      useAppStore.getState().setScanTimestamp('leftovers', Date.now())
+      window.electronAPI.saveResultsCache('leftovers', entries).catch(() => {})
     } finally {
       setScanning('leftovers', false)
     }
@@ -44,6 +46,7 @@ const AppLeftovers: React.FC = () => {
       setSelected(new Set())
       setLastResult({ freed: result.freedBytes, failed: result.failed.length })
       window.electronAPI.getDiskInfo().then(useAppStore.getState().setDiskInfo).catch(() => {})
+      window.electronAPI.saveResultsCache('leftovers', useAppStore.getState().leftoverEntries).catch(() => {})
     } finally {
       setCleaning(false)
     }
@@ -81,6 +84,9 @@ const AppLeftovers: React.FC = () => {
         </div>
         <p style={{ color: '#f9731677', fontSize: 11, fontFamily: 'monospace', marginBottom: 16, paddingLeft: 23 }}>
           ~/Library/Application Support · Containers · Group Containers
+          {scanTimestamps['leftovers'] && !isScanning && (
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['leftovers'])}</span>
+          )}
         </p>
 
         {/* Section tabs */}

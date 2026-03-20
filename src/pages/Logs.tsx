@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, ScrollText, Clock } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { formatBytes, timeAgo } from '../utils/format'
+import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
 import type { LogEntry } from '../types/electron'
 
 type Category = 'userLogs' | 'systemLogs' | 'crashReports'
@@ -20,7 +20,7 @@ const CATEGORY_PATHS: Record<Category, string> = {
 }
 
 const Logs: React.FC = () => {
-  const { logEntries, setLogEntries, removeLogEntries, scanning, setScanning, scanProgress } = useAppStore()
+  const { logEntries, setLogEntries, removeLogEntries, scanning, setScanning, scanProgress, scanTimestamps } = useAppStore()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -37,6 +37,8 @@ const Logs: React.FC = () => {
     try {
       const entries = await window.electronAPI.scanLogs()
       setLogEntries(entries)
+      useAppStore.getState().setScanTimestamp('logs', Date.now())
+      window.electronAPI.saveResultsCache('logs', entries).catch(() => {})
     } finally {
       setScanning('logs', false)
     }
@@ -51,6 +53,7 @@ const Logs: React.FC = () => {
       setSelected(new Set())
       setLastResult({ freed: result.freedBytes, failed: result.failed.length })
       window.electronAPI.getDiskInfo().then(useAppStore.getState().setDiskInfo).catch(() => {})
+      window.electronAPI.saveResultsCache('logs', useAppStore.getState().logEntries).catch(() => {})
     } finally {
       setCleaning(false)
     }
@@ -91,6 +94,9 @@ const Logs: React.FC = () => {
         </div>
         <p style={{ color: '#6b728077', fontSize: 11, fontFamily: 'monospace', marginBottom: 16, paddingLeft: 23 }}>
           {CATEGORY_PATHS[activeCategory]}
+          {scanTimestamps['logs'] && !isScanning && (
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['logs'])}</span>
+          )}
         </p>
 
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #1a1a1a' }}>

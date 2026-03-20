@@ -51,6 +51,18 @@ const App: React.FC = () => {
     window.electronAPI.getDiskInfo().then(setDiskInfo).catch(() => {})
     window.electronAPI.getSettings().then(setSettings).catch(() => {})
 
+    // Restore previous scan results from disk cache
+    window.electronAPI.getResultsCache().then((cache) => {
+      const s = useAppStore.getState()
+      if (cache.caches)     { s.setCacheEntries(cache.caches.entries as never);        s.setScanTimestamp('caches',     cache.caches.timestamp) }
+      if (cache.devtools)   { s.setDevEntries(cache.devtools.entries as never);        s.setScanTimestamp('devtools',   cache.devtools.timestamp) }
+      if (cache.nodeModules){ s.setNodeModules(cache.nodeModules.entries as never);    s.setScanTimestamp('nodeModules',cache.nodeModules.timestamp) }
+      if (cache.leftovers)  { s.setLeftoverEntries(cache.leftovers.entries as never);  s.setScanTimestamp('leftovers',  cache.leftovers.timestamp) }
+      if (cache.largeFiles) { s.setLargeFileEntries(cache.largeFiles.entries as never);s.setScanTimestamp('largeFiles', cache.largeFiles.timestamp) }
+      if (cache.logs)       { s.setLogEntries(cache.logs.entries as never);            s.setScanTimestamp('logs',       cache.logs.timestamp) }
+      if (cache.downloads)  { s.setDownloadEntries(cache.downloads.entries as never);  s.setScanTimestamp('downloads',  cache.downloads.timestamp) }
+    }).catch(() => {})
+
     const unsub = window.electronAPI.onScanProgress((p) => {
       useAppStore.getState().setScanProgress(p.channel, {
         current: p.current, total: p.total, label: p.label,

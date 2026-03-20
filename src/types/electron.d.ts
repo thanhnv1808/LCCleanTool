@@ -32,6 +32,10 @@ export interface DownloadEntry extends ScanEntry {
   ext: string; fileType: 'dmg' | 'archive' | 'video' | 'document' | 'image' | 'other'; ageDays: number
 }
 export interface TrashInfo { size: number; path: string }
+export interface ScanCache {
+  result: QuickScanResult
+  timestamp: number
+}
 
 export interface ElectronAPI {
   getDiskInfo(): Promise<DiskInfo>
@@ -52,6 +56,13 @@ export interface ElectronAPI {
   openPath(p: string): Promise<void>
   showItemInFolder(p: string): Promise<void>
   onScanProgress(cb: (p: ScanProgress) => void): () => void
+  openMainWindow(): Promise<void>
+  onTrayFocus(cb: () => void): () => void
+  getScanCache(): Promise<ScanCache | null>
+  saveScanCache(result: QuickScanResult): Promise<ScanCache>
+  onCacheCleared(cb: () => void): () => void
+  getResultsCache(): Promise<Record<string, { entries: unknown[]; timestamp: number }>>
+  saveResultsCache(key: string, entries: unknown[]): Promise<void>
 }
 
 declare global {

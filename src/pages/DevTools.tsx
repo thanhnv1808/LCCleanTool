@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Terminal, Package, ArrowUpDown } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { formatBytes, timeAgo } from '../utils/format'
+import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
 import type { DevEntry, ScanEntry } from '../types/electron'
 
 const DevTools: React.FC = () => {
   const {
     devEntries, nodeModules, setDevEntries, setNodeModules,
-    removeDevEntries, removeNodeModules, scanning, setScanning, scanProgress, settings,
+    removeDevEntries, removeNodeModules, scanning, setScanning, scanProgress, settings, scanTimestamps,
   } = useAppStore()
   const [selectedDev, setSelectedDev] = useState<Set<string>>(new Set())
   const [selectedNm, setSelectedNm] = useState<Set<string>>(new Set())
@@ -27,6 +27,8 @@ const DevTools: React.FC = () => {
     try {
       const entries = await window.electronAPI.scanDevTools()
       setDevEntries(entries)
+      useAppStore.getState().setScanTimestamp('devtools', Date.now())
+      window.electronAPI.saveResultsCache('devtools', entries).catch(() => {})
     } finally {
       setScanning('devtools', false)
     }
@@ -40,6 +42,8 @@ const DevTools: React.FC = () => {
       const roots = settings?.scanRoots ?? []
       const entries = await window.electronAPI.scanNodeModules(roots)
       setNodeModules(entries)
+      useAppStore.getState().setScanTimestamp('nodeModules', Date.now())
+      window.electronAPI.saveResultsCache('nodeModules', entries).catch(() => {})
     } finally {
       setScanning('nodeModules', false)
     }
@@ -57,6 +61,9 @@ const DevTools: React.FC = () => {
       setSelectedNm(new Set())
       setLastResult({ freed: result.freedBytes, failed: result.failed.length })
       window.electronAPI.getDiskInfo().then(useAppStore.getState().setDiskInfo).catch(() => {})
+      const st = useAppStore.getState()
+      window.electronAPI.saveResultsCache('devtools', st.devEntries).catch(() => {})
+      window.electronAPI.saveResultsCache('nodeModules', st.nodeModules).catch(() => {})
     } finally {
       setCleaning(false)
     }
@@ -80,6 +87,11 @@ const DevTools: React.FC = () => {
         </div>
         <p style={{ color: '#f59e0b77', fontSize: 11, fontFamily: 'monospace', marginBottom: 16, paddingLeft: 23 }}>
           npm · yarn · pnpm · Homebrew · Xcode · Docker · Python · Rust · Go
+          {(scanTimestamps['devtools'] || scanTimestamps['nodeModules']) && !isScanningDev && !isScanningNm && (
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>
+              · {scanTimestampLabel(scanTimestamps[activeSection === 'nodemodules' ? 'nodeModules' : 'devtools'] ?? 0)}
+            </span>
+          )}
         </p>
 
         {/* Section tabs */}

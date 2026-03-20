@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Database, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { formatBytes, timeAgo } from '../utils/format'
+import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
 import type { ScanEntry } from '../types/electron'
 
 const SystemCache: React.FC = () => {
-  const { cacheEntries, setCacheEntries, removeCacheEntries, scanning, setScanning, scanProgress } = useAppStore()
+  const { cacheEntries, setCacheEntries, removeCacheEntries, scanning, setScanning, scanProgress, scanTimestamps } = useAppStore()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -22,6 +22,9 @@ const SystemCache: React.FC = () => {
     try {
       const entries = await window.electronAPI.scanCaches()
       setCacheEntries(entries)
+      const ts = Date.now()
+      useAppStore.getState().setScanTimestamp('caches', ts)
+      window.electronAPI.saveResultsCache('caches', entries).catch(() => {})
     } finally {
       setScanning('caches', false)
     }
@@ -51,6 +54,8 @@ const SystemCache: React.FC = () => {
       setSelected(new Set())
       setLastResult({ freed: result.freedBytes, failed: result.failed.length })
       window.electronAPI.getDiskInfo().then(useAppStore.getState().setDiskInfo).catch(() => {})
+      const updated = useAppStore.getState().cacheEntries
+      window.electronAPI.saveResultsCache('caches', updated).catch(() => {})
     } finally {
       setCleaning(false)
     }
@@ -97,6 +102,9 @@ const SystemCache: React.FC = () => {
         </div>
         <div style={{ color: '#a855f799', fontSize: 11, fontFamily: 'monospace', paddingLeft: 23 }}>
           ~/Library/Caches — {cacheEntries.length} mục, tổng {formatBytes(totalSize)}
+          {scanTimestamps['caches'] && !isScanning && (
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['caches'])}</span>
+          )}
         </div>
       </div>
 
