@@ -2,14 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Download } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
+import { useTranslation } from '../i18n/useTranslation'
 import type { DownloadEntry } from '../types/electron'
 
 type FilterType = 'all' | 'dmg' | 'archive' | 'video' | 'document' | 'image' | 'other'
-
-const TYPE_LABELS: Record<FilterType, string> = {
-  all: 'Tất cả', dmg: 'DMG', archive: 'Archive',
-  video: 'Video', document: 'Document', image: 'Image', other: 'Khác',
-}
 
 const TYPE_COLOR: Record<string, string> = {
   dmg: '#ef4444', archive: '#f59e0b', video: '#a855f7',
@@ -21,6 +17,13 @@ const Downloads: React.FC = () => {
     downloadEntries, setDownloadEntries, removeDownloadEntries,
     setTrashInfo, scanning, setScanning, scanProgress, scanTimestamps,
   } = useAppStore()
+  const lang = useAppStore((s) => s.language)
+  const t = useTranslation()
+
+  const TYPE_LABELS: Record<FilterType, string> = {
+    all: t.downloads.all, dmg: 'DMG', archive: 'Archive',
+    video: 'Video', document: 'Document', image: 'Image', other: t.downloads.other,
+  }
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
@@ -78,8 +81,8 @@ const Downloads: React.FC = () => {
     [filtered, selected],
   )
 
-  const countByType = (t: FilterType) =>
-    t === 'all' ? downloadEntries.length : downloadEntries.filter((e) => e.fileType === t).length
+  const countByType = (tp: FilterType) =>
+    tp === 'all' ? downloadEntries.length : downloadEntries.filter((e) => e.fileType === tp).length
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -92,7 +95,7 @@ const Downloads: React.FC = () => {
         <p style={{ color: '#22c55e77', fontSize: 11, fontFamily: 'monospace', marginBottom: 16, paddingLeft: 23 }}>
           ~/Downloads
           {scanTimestamps['downloads'] && !isScanning && (
-            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['downloads'])}</span>
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['downloads'], lang)}</span>
           )}
         </p>
       </div>
@@ -101,13 +104,13 @@ const Downloads: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
         <Btn onClick={doScan} disabled={isScanning} color="#22c55e" dark>
           <Search size={13} />
-          {isScanning ? 'Đang quét...' : 'Quét Downloads'}
+          {isScanning ? t.common.scanning : t.downloads.scanBtn}
         </Btn>
 
         {selected.size > 0 && (
           <Btn onClick={doClean} disabled={cleaning} color="#ef4444">
             <Trash2 size={13} />
-            {cleaning ? 'Đang xóa...' : `Xóa vào Trash (${formatBytes(selectedSize)})`}
+            {cleaning ? t.common.deleting : `${t.common.moveToTrash} (${formatBytes(selectedSize)})`}
           </Btn>
         )}
 
@@ -120,8 +123,8 @@ const Downloads: React.FC = () => {
         )}
         {lastResult && (
           <div style={{ color: '#22c55e', fontSize: 11 }}>
-            ✓ Đã giải phóng {formatBytes(lastResult.freed)}
-            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} lỗi</span>}
+            ✓ {t.common.freed} {formatBytes(lastResult.freed)}
+            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} {t.common.errors}</span>}
           </div>
         )}
       </div>
@@ -129,22 +132,22 @@ const Downloads: React.FC = () => {
       {/* Type filter */}
       {downloadEntries.length > 0 && (
         <div style={{ display: 'flex', gap: 6, padding: '10px 24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0, flexWrap: 'wrap' }}>
-          {(['all', 'dmg', 'archive', 'video', 'document', 'image', 'other'] as FilterType[]).map((t) => {
-            const cnt = countByType(t)
-            if (t !== 'all' && cnt === 0) return null
-            const isActive = filterType === t
+          {(['all', 'dmg', 'archive', 'video', 'document', 'image', 'other'] as FilterType[]).map((tp) => {
+            const cnt = countByType(tp)
+            if (tp !== 'all' && cnt === 0) return null
+            const isActive = filterType === tp
             return (
               <button
-                key={t}
-                onClick={() => { setFilterType(t); setSelected(new Set()) }}
+                key={tp}
+                onClick={() => { setFilterType(tp); setSelected(new Set()) }}
                 style={{
                   padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 11,
-                  background: isActive ? (t === 'all' ? '#22c55e' : (TYPE_COLOR[t] ?? '#22c55e')) : '#1d1d1d',
-                  color: isActive ? (t === 'all' || t === 'image' ? '#000' : '#fff') : '#6b6b6b',
+                  background: isActive ? (tp === 'all' ? '#22c55e' : (TYPE_COLOR[tp] ?? '#22c55e')) : '#1d1d1d',
+                  color: isActive ? (tp === 'all' || tp === 'image' ? '#000' : '#fff') : '#6b6b6b',
                   fontWeight: isActive ? 600 : 400,
                 }}
               >
-                {TYPE_LABELS[t]} {cnt > 0 && <span style={{ opacity: 0.75 }}>({cnt})</span>}
+                {TYPE_LABELS[tp]} {cnt > 0 && <span style={{ opacity: 0.75 }}>({cnt})</span>}
               </button>
             )
           })}
@@ -153,7 +156,7 @@ const Downloads: React.FC = () => {
 
       {/* File list */}
       {filtered.length === 0 ? (
-        <EmptyState isScanning={isScanning} onScan={doScan} />
+        <EmptyState isScanning={isScanning} onScan={doScan} t={t.downloads} tCommon={t.common} />
       ) : (
         <div style={{ flex: 1, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -162,11 +165,11 @@ const Downloads: React.FC = () => {
                 <th style={thS(40)}>
                   <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} />
                 </th>
-                <th style={thS()}>Tên file</th>
-                <th style={thS(80)}>Loại</th>
-                <th style={{ ...thS(110), textAlign: 'right' }}>Kích thước</th>
-                <th style={{ ...thS(70), textAlign: 'right' }}>Tuổi</th>
-                <th style={{ ...thS(110), textAlign: 'right' }}>Lần cuối</th>
+                <th style={thS()}>{t.downloads.fileName}</th>
+                <th style={thS(80)}>{t.common.type}</th>
+                <th style={{ ...thS(110), textAlign: 'right' }}>{t.largeFiles.sizeCol}</th>
+                <th style={{ ...thS(70), textAlign: 'right' }}>{t.common.age}</th>
+                <th style={{ ...thS(110), textAlign: 'right' }}>{t.common.lastModified}</th>
                 <th style={thS(44)} />
               </tr>
             </thead>
@@ -178,6 +181,9 @@ const Downloads: React.FC = () => {
                   selected={selected.has(entry.path)}
                   onToggle={() => toggle(entry.path)}
                   onReveal={() => window.electronAPI.showItemInFolder(entry.path)}
+                  lang={lang}
+                  todayLabel={t.downloads.today}
+                  oldLabel={t.downloads.old}
                 />
               ))}
             </tbody>
@@ -187,19 +193,20 @@ const Downloads: React.FC = () => {
 
       {filtered.length > 0 && (
         <div style={{ padding: '6px 24px', borderTop: '1px solid #1a1a1a', flexShrink: 0, display: 'flex', gap: 16 }}>
-          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{filtered.length} file</span>
-          <span style={{ color: '#5a5a5a', fontSize: 11 }}>Tổng: {formatBytes(filtered.reduce((s, e) => s + e.size, 0))}</span>
-          {selected.size > 0 && <span style={{ color: '#06b6d4', fontSize: 11 }}>Đã chọn {selected.size} ({formatBytes(selectedSize)})</span>}
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{filtered.length} {t.common.files}</span>
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{t.common.total}: {formatBytes(filtered.reduce((s, e) => s + e.size, 0))}</span>
+          {selected.size > 0 && <span style={{ color: '#06b6d4', fontSize: 11 }}>{t.common.selected} {selected.size} ({formatBytes(selectedSize)})</span>}
           <span style={{ flex: 1 }} />
-          <span style={{ color: '#3d3d3d', fontSize: 11 }}>⚠ Chuyển vào Trash</span>
+          <span style={{ color: '#3d3d3d', fontSize: 11 }}>{t.common.trashWarning}</span>
         </div>
       )}
     </div>
   )
 }
 
-function DownloadRow({ entry, selected, onToggle, onReveal }: {
+function DownloadRow({ entry, selected, onToggle, onReveal, lang, todayLabel, oldLabel }: {
   entry: DownloadEntry; selected: boolean; onToggle: () => void; onReveal: () => void
+  lang: import('../i18n/translations').Lang; todayLabel: string; oldLabel: string
 }) {
   const mb = entry.size / 1024 / 1024
   const sizeColor = mb > 500 ? '#ef4444' : mb > 100 ? '#f59e0b' : '#888'
@@ -218,7 +225,7 @@ function DownloadRow({ entry, selected, onToggle, onReveal }: {
       <td style={{ padding: '7px 12px' }}>
         <div style={{ color: '#d0d0d0', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
           {entry.name}
-          {oldFile && <span style={{ color: '#f59e0b', fontSize: 9, background: '#f59e0b18', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>cũ</span>}
+          {oldFile && <span style={{ color: '#f59e0b', fontSize: 9, background: '#f59e0b18', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>{oldLabel}</span>}
         </div>
         <div style={{ color: '#525252', fontSize: 10, fontFamily: 'monospace', marginTop: 1, maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {entry.path}
@@ -236,11 +243,11 @@ function DownloadRow({ entry, selected, onToggle, onReveal }: {
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <span style={{ color: oldFile ? '#f59e0b' : '#5a5a5a', fontSize: 11 }}>
-          {entry.ageDays === 0 ? 'hôm nay' : `${entry.ageDays}d`}
+          {entry.ageDays === 0 ? todayLabel : `${entry.ageDays}d`}
         </span>
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right', color: '#6b6b6b', fontSize: 11 }}>
-        {timeAgo(entry.mtime)}
+        {timeAgo(entry.mtime, lang)}
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <button onClick={onReveal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}>
@@ -269,21 +276,25 @@ function Btn({ children, onClick, disabled, color, dark }: {
   )
 }
 
-function EmptyState({ isScanning, onScan }: { isScanning: boolean; onScan: () => void }) {
+function EmptyState({ isScanning, onScan, t, tCommon }: {
+  isScanning: boolean; onScan: () => void
+  t: { scanning: string; analyzeDownloads: string; scanBtn: string }
+  tCommon: { notScanned: string; scanNow: string }
+}) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
       {isScanning ? (
         <>
           <div style={{ animation: 'spin 1.5s linear infinite' }}><Search size={40} color="#22c55e50" strokeWidth={1} /></div>
-          <div style={{ fontSize: 13, color: '#666' }}>Đang quét Downloads...</div>
+          <div style={{ fontSize: 13, color: '#666' }}>{t.scanning}</div>
         </>
       ) : (
         <>
           <Download size={48} color="#2a2a2a" strokeWidth={1} />
-          <div style={{ fontSize: 14, color: '#666' }}>Chưa quét</div>
-          <div style={{ fontSize: 12, color: '#4a4a4a' }}>Phân tích ~/Downloads để tìm file có thể xóa</div>
+          <div style={{ fontSize: 14, color: '#666' }}>{tCommon.notScanned}</div>
+          <div style={{ fontSize: 12, color: '#4a4a4a' }}>{t.analyzeDownloads}</div>
           <button onClick={onScan} style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#22c55e', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Search size={13} /> Quét ngay
+            <Search size={13} /> {tCommon.scanNow}
           </button>
         </>
       )}

@@ -3,10 +3,12 @@ import type {
   DiskInfo, ScanEntry, DevEntry, QuickScanResult, AppSettings,
   LeftoverEntry, LargeFileEntry, LogEntry, DownloadEntry, TrashInfo,
 } from '../types/electron'
+import type { Lang } from '../i18n/translations'
 
 export type TabId = 'dashboard' | 'caches' | 'devtools' | 'leftovers' | 'largefiles' | 'logs' | 'downloads' | 'settings'
 
 interface AppStore {
+  language: Lang
   activeTab: TabId
   diskInfo: DiskInfo | null
   quickScan: QuickScanResult | null
@@ -23,6 +25,7 @@ interface AppStore {
   scanProgress: Record<string, { current: number; total: number; label: string }>
   scanTimestamps: Record<string, number>
 
+  setLanguage: (lang: Lang) => void
   setActiveTab: (tab: TabId) => void
   setDiskInfo: (info: DiskInfo) => void
   setQuickScan: (r: QuickScanResult) => void
@@ -48,6 +51,7 @@ interface AppStore {
 }
 
 export const useAppStore = create<AppStore>((set) => ({
+  language: 'en',
   activeTab: 'dashboard',
   diskInfo: null,
   quickScan: null,
@@ -64,6 +68,7 @@ export const useAppStore = create<AppStore>((set) => ({
   scanProgress: {},
   scanTimestamps: {},
 
+  setLanguage: (language) => set({ language }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setDiskInfo: (diskInfo) => set({ diskInfo }),
   setQuickScan: (quickScan) => set({ quickScan }),

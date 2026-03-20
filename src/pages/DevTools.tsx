@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react'
-import { Search, Trash2, FolderOpen, Terminal, Package, ArrowUpDown } from 'lucide-react'
+import { Search, Trash2, FolderOpen, Terminal, Package } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
+import { useTranslation } from '../i18n/useTranslation'
+import type { Lang } from '../i18n/translations'
 import type { DevEntry, ScanEntry } from '../types/electron'
 
 const DevTools: React.FC = () => {
@@ -9,6 +11,8 @@ const DevTools: React.FC = () => {
     devEntries, nodeModules, setDevEntries, setNodeModules,
     removeDevEntries, removeNodeModules, scanning, setScanning, scanProgress, settings, scanTimestamps,
   } = useAppStore()
+  const lang = useAppStore((s) => s.language)
+  const t = useTranslation()
   const [selectedDev, setSelectedDev] = useState<Set<string>>(new Set())
   const [selectedNm, setSelectedNm] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
@@ -39,7 +43,12 @@ const DevTools: React.FC = () => {
     setSelectedNm(new Set())
     setLastResult(null)
     try {
-      const roots = settings?.scanRoots ?? []
+      let currentSettings = settings
+      if (!currentSettings) {
+        currentSettings = await window.electronAPI.getSettings()
+        useAppStore.getState().setSettings(currentSettings)
+      }
+      const roots = currentSettings.scanRoots
       const entries = await window.electronAPI.scanNodeModules(roots)
       setNodeModules(entries)
       useAppStore.getState().setScanTimestamp('nodeModules', Date.now())
@@ -89,7 +98,7 @@ const DevTools: React.FC = () => {
           npm · yarn · pnpm · Homebrew · Xcode · Docker · Python · Rust · Go
           {(scanTimestamps['devtools'] || scanTimestamps['nodeModules']) && !isScanningDev && !isScanningNm && (
             <span style={{ color: '#3a3a3a', marginLeft: 8 }}>
-              · {scanTimestampLabel(scanTimestamps[activeSection === 'nodemodules' ? 'nodeModules' : 'devtools'] ?? 0)}
+              · {scanTimestampLabel(scanTimestamps[activeSection === 'nodemodules' ? 'nodeModules' : 'devtools'] ?? 0, lang)}
             </span>
           )}
         </p>
@@ -124,19 +133,19 @@ const DevTools: React.FC = () => {
         {activeSection === 'devtools' ? (
           <Btn onClick={scanDev} disabled={isScanningDev} color="#f59e0b" dark>
             <Search size={13} />
-            {isScanningDev ? 'Đang quét...' : 'Quét Dev Tools'}
+            {isScanningDev ? t.devtools.scanning : t.devtools.scanDevBtn}
           </Btn>
         ) : (
           <Btn onClick={scanNm} disabled={isScanningNm} color="#f59e0b" dark>
             <Search size={13} />
-            {isScanningNm ? 'Đang tìm...' : 'Tìm node_modules'}
+            {isScanningNm ? t.devtools.finding : t.devtools.findNmBtn}
           </Btn>
         )}
 
         {totalSelected > 0 && (
           <Btn onClick={cleanSelected} disabled={cleaning} color="#ef4444">
             <Trash2 size={13} />
-            {cleaning ? 'Xóa...' : `Xóa vào Trash (${formatBytes(selectedSize)})`}
+            {cleaning ? t.common.deleting : `${t.common.moveToTrash} (${formatBytes(selectedSize)})`}
           </Btn>
         )}
 
@@ -154,8 +163,8 @@ const DevTools: React.FC = () => {
         )}
         {lastResult && (
           <div style={{ color: '#22c55e', fontSize: 11 }}>
-            ✓ Freed {formatBytes(lastResult.freed)}
-            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} failed</span>}
+            ✓ {t.common.freed} {formatBytes(lastResult.freed)}
+            {lastResult.failed > 0 && <span style={{ color: '#ef4444' }}> · {lastResult.failed} {t.common.errors}</span>}
           </div>
         )}
       </div>
@@ -173,6 +182,9 @@ const DevTools: React.FC = () => {
             }}
             isScanning={isScanningDev}
             onScan={scanDev}
+            lang={lang}
+            tCommon={t.common}
+            tDevtools={t.devtools}
           />
         ) : (
           <NodeModulesTable
@@ -185,6 +197,9 @@ const DevTools: React.FC = () => {
             }}
             isScanning={isScanningNm}
             onScan={scanNm}
+            lang={lang}
+            tCommon={t.common}
+            tDevtools={t.devtools}
           />
         )}
       </div>
@@ -193,25 +208,39 @@ const DevTools: React.FC = () => {
       <div style={{ padding: '6px 24px', borderTop: '1px solid #1a1a1a', flexShrink: 0, display: 'flex', gap: 16 }}>
         <span style={{ color: '#5a5a5a', fontSize: 11 }}>
           {activeSection === 'devtools'
-            ? `${devEntries.length} công cụ, tổng ${formatBytes(devEntries.reduce((s, e) => s + e.size, 0))}`
-            : `${nodeModules.length} thư mục, tổng ${formatBytes(nodeModules.reduce((s, e) => s + e.size, 0))}`
+            ? `${devEntries.length} ${t.common.tools}, ${t.common.total} ${formatBytes(devEntries.reduce((s, e) => s + e.size, 0))}`
+            : `${nodeModules.length} ${t.common.folders}, ${t.common.total} ${formatBytes(nodeModules.reduce((s, e) => s + e.size, 0))}`
           }
         </span>
         <span style={{ flex: 1 }} />
-        <span style={{ color: '#3d3d3d', fontSize: 11 }}>⚠ Chuyển vào Trash</span>
+        <span style={{ color: '#3d3d3d', fontSize: 11 }}>{t.common.trashWarning}</span>
       </div>
     </div>
   )
 }
 
 // ─── DevTools table ──────────────────────────────────────────────────────────
-function DevToolsTable({ entries, selected, onToggle, onToggleAll, isScanning, onScan }: {
+function DevToolsTable({ entries, selected, onToggle, onToggleAll, isScanning, onScan, lang, tCommon, tDevtools }: {
   entries: DevEntry[]; selected: Set<string>
   onToggle: (p: string) => void; onToggleAll: () => void
-  isScanning: boolean; onScan: () => void
+  isScanning: boolean; onScan: () => void; lang: Lang
+  tCommon: { size: string; lastModified: string; noData: string; scanNow: string }
+  tDevtools: { scanning: string }
 }) {
   if (entries.length === 0) {
-    return <EmptyState isScanning={isScanning} onScan={onScan} icon={<Terminal size={48} color="#2a2a2a" strokeWidth={1} />} label="Dev Tools" color="#f59e0b" dark />
+    return (
+      <EmptyState
+        isScanning={isScanning}
+        onScan={onScan}
+        icon={<Terminal size={48} color="#2a2a2a" strokeWidth={1} />}
+        label="Dev Tools"
+        color="#f59e0b"
+        dark
+        scanningLabel={tDevtools.scanning}
+        noDataLabel={tCommon.noData}
+        scanNowLabel={tCommon.scanNow}
+      />
+    )
   }
 
   return (
@@ -219,9 +248,9 @@ function DevToolsTable({ entries, selected, onToggle, onToggleAll, isScanning, o
       <thead>
         <tr style={{ backgroundColor: '#111', position: 'sticky', top: 0 }}>
           <th style={thS(40)}><input type="checkbox" checked={selected.size === entries.length && entries.length > 0} onChange={onToggleAll} /></th>
-          <th style={thS()}>Công cụ</th>
-          <th style={thS(120, 'right')}>Dung lượng</th>
-          <th style={thS(120, 'right')}>Lần cuối</th>
+          <th style={thS()}>Tool</th>
+          <th style={thS(120, 'right')}>{tCommon.size}</th>
+          <th style={thS(120, 'right')}>{tCommon.lastModified}</th>
           <th style={thS(44)} />
         </tr>
       </thead>
@@ -239,7 +268,7 @@ function DevToolsTable({ entries, selected, onToggle, onToggleAll, isScanning, o
               <div style={{ color: '#525252', fontSize: 10, fontFamily: 'monospace', marginTop: 1 }}>{entry.path}</div>
             </td>
             <td style={tdS(120, 'right')}><SizeChip size={entry.size} /></td>
-            <td style={tdS(120, 'right')}><span style={{ color: '#6b6b6b', fontSize: 11 }}>{timeAgo(entry.mtime)}</span></td>
+            <td style={tdS(120, 'right')}><span style={{ color: '#6b6b6b', fontSize: 11 }}>{timeAgo(entry.mtime, lang)}</span></td>
             <td style={tdS(44, 'right')}>
               <button onClick={() => window.electronAPI.showItemInFolder(entry.path)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}>
                 <FolderOpen size={13} />
@@ -253,10 +282,12 @@ function DevToolsTable({ entries, selected, onToggle, onToggleAll, isScanning, o
 }
 
 // ─── node_modules table ──────────────────────────────────────────────────────
-function NodeModulesTable({ entries, selected, onToggle, onToggleAll, isScanning, onScan }: {
+function NodeModulesTable({ entries, selected, onToggle, onToggleAll, isScanning, onScan, lang, tCommon, tDevtools }: {
   entries: ScanEntry[]; selected: Set<string>
   onToggle: (p: string) => void; onToggleAll: () => void
-  isScanning: boolean; onScan: () => void
+  isScanning: boolean; onScan: () => void; lang: Lang
+  tCommon: { size: string; lastModified: string; noData: string; scanNow: string }
+  tDevtools: { finding: string; willScanIn: string; totalRow: string }
 }) {
   if (entries.length === 0) {
     return (
@@ -264,17 +295,17 @@ function NodeModulesTable({ entries, selected, onToggle, onToggleAll, isScanning
         {isScanning ? (
           <>
             <div style={{ animation: 'spin 1.5s linear infinite' }}><Search size={40} color="#f59e0b60" strokeWidth={1} /></div>
-            <div style={{ fontSize: 13, color: '#666' }}>Đang tìm...</div>
+            <div style={{ fontSize: 13, color: '#666' }}>{tDevtools.finding}</div>
           </>
         ) : (
           <>
             <Package size={48} color="#2a2a2a" strokeWidth={1} />
-            <div style={{ fontSize: 14, color: '#666' }}>Chưa có dữ liệu</div>
+            <div style={{ fontSize: 14, color: '#666' }}>{tCommon.noData}</div>
             <button onClick={onScan} style={{ padding: '7px 18px', borderRadius: 7, border: 'none', background: '#f59e0b', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Search size={13} /> Quét node_modules
+              <Search size={13} /> {tCommon.scanNow}
             </button>
             <div style={{ color: '#525252', fontSize: 11 }}>
-              Sẽ tìm trong: ~/Documents, ~/Projects, ~/Desktop...
+              {tDevtools.willScanIn}
             </div>
           </>
         )}
@@ -290,8 +321,8 @@ function NodeModulesTable({ entries, selected, onToggle, onToggleAll, isScanning
         <tr style={{ backgroundColor: '#111', position: 'sticky', top: 0 }}>
           <th style={thS(40)}><input type="checkbox" checked={selected.size === entries.length && entries.length > 0} onChange={onToggleAll} /></th>
           <th style={thS()}>Project</th>
-          <th style={thS(120, 'right')}>Dung lượng</th>
-          <th style={thS(120, 'right')}>Lần cuối</th>
+          <th style={thS(120, 'right')}>{tCommon.size}</th>
+          <th style={thS(120, 'right')}>{tCommon.lastModified}</th>
           <th style={thS(44)} />
         </tr>
       </thead>
@@ -309,7 +340,7 @@ function NodeModulesTable({ entries, selected, onToggle, onToggleAll, isScanning
               <div style={{ color: '#525252', fontSize: 10, fontFamily: 'monospace', marginTop: 1 }}>{entry.path}</div>
             </td>
             <td style={tdS(120, 'right')}><SizeChip size={entry.size} /></td>
-            <td style={tdS(120, 'right')}><span style={{ color: '#6b6b6b', fontSize: 11 }}>{timeAgo(entry.mtime)}</span></td>
+            <td style={tdS(120, 'right')}><span style={{ color: '#6b6b6b', fontSize: 11 }}>{timeAgo(entry.mtime, lang)}</span></td>
             <td style={tdS(44, 'right')}>
               <button onClick={() => window.electronAPI.showItemInFolder(entry.path)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}>
                 <FolderOpen size={13} />
@@ -318,7 +349,7 @@ function NodeModulesTable({ entries, selected, onToggle, onToggleAll, isScanning
           </tr>
         ))}
         <tr style={{ backgroundColor: '#0d0d0d' }}>
-          <td colSpan={2} style={{ padding: '8px 12px', color: '#5a5a5a', fontSize: 11, fontWeight: 700 }}>TỔNG</td>
+          <td colSpan={2} style={{ padding: '8px 12px', color: '#5a5a5a', fontSize: 11, fontWeight: 700 }}>{tDevtools.totalRow}</td>
           <td style={{ padding: '8px 12px', textAlign: 'right', color: '#f59e0b', fontSize: 13, fontWeight: 700 }}>{formatBytes(total)}</td>
           <td colSpan={2} />
         </tr>
@@ -341,22 +372,23 @@ function SizeChip({ size }: { size: number }) {
   return <span style={{ color, fontSize: 12, fontWeight: mb > 200 ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{formatBytes(size)}</span>
 }
 
-function EmptyState({ isScanning, onScan, icon, label, color, dark }: {
+function EmptyState({ isScanning, onScan, icon, label, color, dark, scanningLabel, noDataLabel, scanNowLabel }: {
   isScanning: boolean; onScan: () => void; icon: React.ReactNode; label: string; color: string; dark?: boolean
+  scanningLabel: string; noDataLabel: string; scanNowLabel: string
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#5a5a5a', paddingTop: 80 }}>
       {isScanning ? (
         <>
           <div style={{ animation: 'spin 1.5s linear infinite' }}><Search size={40} color={color + '60'} strokeWidth={1} /></div>
-          <div style={{ fontSize: 13, color: '#666' }}>Đang quét...</div>
+          <div style={{ fontSize: 13, color: '#666' }}>{scanningLabel}</div>
         </>
       ) : (
         <>
           {icon}
-          <div style={{ fontSize: 14, color: '#666' }}>Chưa có dữ liệu</div>
+          <div style={{ fontSize: 14, color: '#666' }}>{noDataLabel}</div>
           <button onClick={onScan} style={{ marginTop: 4, padding: '7px 18px', borderRadius: 7, border: 'none', background: color, color: dark ? '#000' : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Search size={13} /> Quét {label}
+            <Search size={13} /> {scanNowLabel} {label}
           </button>
         </>
       )}
@@ -377,8 +409,5 @@ function Btn({ children, onClick, disabled, color, dark }: {
     }}>{children}</button>
   )
 }
-
-// suppress unused import warning
-const _ArrowUpDown = ArrowUpDown
 
 export default DevTools

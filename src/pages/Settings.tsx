@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Save, AlertTriangle } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
+import { useTranslation } from '../i18n/useTranslation'
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useAppStore()
+  const language = useAppStore((s) => s.language)
+  const setLanguage = useAppStore((s) => s.setLanguage)
+  const t = useTranslation()
   const [roots, setRoots] = useState('')
   const [threshold, setThreshold] = useState(100)
   const [days, setDays] = useState(30)
@@ -33,13 +37,13 @@ const Settings: React.FC = () => {
   return (
     <div style={{ height: '100%', overflow: 'auto', padding: 28 }}>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>Cài đặt</h2>
-        <p style={{ color: '#5a5a5a', fontSize: 12, marginTop: 4 }}>Cấu hình hành vi quét và dọn dẹp</p>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>{t.settings.title}</h2>
+        <p style={{ color: '#5a5a5a', fontSize: 12, marginTop: 4 }}>{t.settings.subtitle}</p>
       </div>
 
       <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Scan roots */}
-        <Section title="Thư mục quét node_modules" desc="Mỗi dòng một path. Mặc định: home folder">
+        <Section title={t.settings.scanRoots} desc={t.settings.scanRootsDesc}>
           <textarea
             value={roots}
             onChange={(e) => setRoots(e.target.value)}
@@ -53,7 +57,7 @@ const Settings: React.FC = () => {
         </Section>
 
         {/* Large file threshold */}
-        <Section title="Ngưỡng file lớn (MB)" desc="File lớn hơn ngưỡng này sẽ hiển thị trong tab File Lớn">
+        <Section title={t.settings.largeFileThreshold} desc={t.settings.largeFileThresholdDesc}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input
               type="number"
@@ -67,7 +71,7 @@ const Settings: React.FC = () => {
         </Section>
 
         {/* Threshold days */}
-        <Section title="Ngưỡng ngày không dùng" desc="File/thư mục cũ hơn số ngày này được đánh dấu để xem xét xóa">
+        <Section title={t.settings.thresholdDays} desc={t.settings.thresholdDaysDesc}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input
               type="number"
@@ -76,17 +80,34 @@ const Settings: React.FC = () => {
               min={1} max={365}
               style={{ width: 100, background: '#1a1a1a', color: '#d0d0d0', border: '1px solid #282828', borderRadius: 7, padding: '6px 10px', fontSize: 13, outline: 'none' }}
             />
-            <span style={{ color: '#5a5a5a', fontSize: 12 }}>ngày</span>
+            <span style={{ color: '#5a5a5a', fontSize: 12 }}>{t.settings.days}</span>
+          </div>
+        </Section>
+
+        {/* Language */}
+        <Section title={t.settings.language} desc={t.settings.languageDesc}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['en', 'vi'] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLanguage(l)}
+                style={{
+                  padding: '6px 16px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600,
+                  background: language === l ? '#06b6d4' : '#1a1a1a',
+                  color: language === l ? '#fff' : '#5a5a5a',
+                }}
+              >
+                {l === 'en' ? 'English' : 'Tiếng Việt'}
+              </button>
+            ))}
           </div>
         </Section>
 
         {/* Safety note */}
         <div style={{ padding: '12px 16px', borderRadius: 8, backgroundColor: '#1a1300', border: '1px solid #f59e0b1a', fontSize: 12, color: '#f59e0b88', lineHeight: 1.6, display: 'flex', gap: 10 }}>
           <AlertTriangle size={14} color="#f59e0b88" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            CleanTool luôn chuyển file vào <strong style={{ color: '#f59e0b' }}>Trash</strong> thay vì xóa vĩnh viễn.
-            Bạn có thể khôi phục bất kỳ lúc nào từ Trash trong Finder.
-          </span>
+          <span>{t.settings.safetyNote}</span>
         </div>
 
         {/* Save button */}
@@ -100,7 +121,7 @@ const Settings: React.FC = () => {
           }}
         >
           <Save size={14} />
-          {saved ? 'Đã lưu!' : 'Lưu cài đặt'}
+          {saved ? t.settings.saved : t.settings.save}
         </button>
       </div>
     </div>
