@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { Search, Trash2, FolderOpen, Database, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { formatBytes, timeAgo } from '../utils/format'
 import type { ScanEntry } from '../types/electron'
@@ -49,7 +50,6 @@ const SystemCache: React.FC = () => {
       removeCacheEntries(result.success)
       setSelected(new Set())
       setLastResult({ freed: result.freedBytes, failed: result.failed.length })
-      // Refresh disk info
       window.electronAPI.getDiskInfo().then(useAppStore.getState().setDiskInfo).catch(() => {})
     } finally {
       setCleaning(false)
@@ -80,43 +80,50 @@ const SystemCache: React.FC = () => {
     else { setSortBy(col); setSortDir('desc') }
   }
 
-  const SortIcon = ({ col }: { col: typeof sortBy }) =>
-    sortBy === col ? <span style={{ color: '#06b6d4' }}>{sortDir === 'desc' ? ' ↓' : ' ↑'}</span> : null
+  const SortIcon = ({ col }: { col: typeof sortBy }) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} style={{ opacity: 0.3, marginLeft: 3 }} />
+    return sortDir === 'desc'
+      ? <ArrowDown size={11} color="#06b6d4" style={{ marginLeft: 3 }} />
+      : <ArrowUp size={11} color="#06b6d4" style={{ marginLeft: 3 }} />
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* ── Header ── */}
-      <PageHeader
-        title="Cache Hệ thống"
-        subtitle={`~/Library/Caches — ${cacheEntries.length} mục, tổng ${formatBytes(totalSize)}`}
-        color="#a855f7"
-      />
+      <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <Database size={15} color="#a855f7" strokeWidth={1.5} />
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>Cache Hệ thống</h2>
+        </div>
+        <div style={{ color: '#a855f799', fontSize: 11, fontFamily: 'monospace', paddingLeft: 23 }}>
+          ~/Library/Caches — {cacheEntries.length} mục, tổng {formatBytes(totalSize)}
+        </div>
+      </div>
 
       {/* ── Toolbar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0,
       }}>
-        <Btn onClick={doScan} disabled={isScanning} primary>
-          {isScanning ? '⟳ Đang quét...' : '🔎 Quét cache'}
+        <Btn onClick={doScan} disabled={isScanning} color="#a855f7">
+          <Search size={13} />
+          {isScanning ? 'Đang quét...' : 'Quét cache'}
         </Btn>
 
         {selected.size > 0 && (
-          <Btn onClick={doClean} disabled={cleaning} danger>
-            {cleaning ? '⟳ Đang xóa...' : `🗑 Xóa vào Trash (${formatBytes(selectedSize)})`}
+          <Btn onClick={doClean} disabled={cleaning} color="#ef4444">
+            <Trash2 size={13} />
+            {cleaning ? 'Đang xóa...' : `Xóa vào Trash (${formatBytes(selectedSize)})`}
           </Btn>
         )}
 
         <div style={{ flex: 1 }} />
 
-        {/* Progress */}
         {isScanning && progress && (
-          <div style={{ color: '#555', fontSize: 11, fontFamily: 'monospace', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ color: '#6b6b6b', fontSize: 11, fontFamily: 'monospace', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             [{progress.current}/{progress.total}] {progress.label}
           </div>
         )}
-
-        {/* Result badge */}
         {lastResult && (
           <div style={{ color: '#22c55e', fontSize: 11 }}>
             ✓ Đã giải phóng {formatBytes(lastResult.freed)}
@@ -139,16 +146,16 @@ const SystemCache: React.FC = () => {
                     onChange={toggleAll}
                   />
                 </Th>
-                <Th onClick={() => toggleSort('name')} style={{ cursor: 'pointer' }}>
-                  Tên <SortIcon col="name" />
+                <Th onClick={() => toggleSort('name')} clickable>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>Tên <SortIcon col="name" /></span>
                 </Th>
-                <Th width={100} onClick={() => toggleSort('size')} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                  Dung lượng <SortIcon col="size" />
+                <Th width={110} onClick={() => toggleSort('size')} clickable align="right">
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Dung lượng <SortIcon col="size" /></span>
                 </Th>
-                <Th width={120} onClick={() => toggleSort('mtime')} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                  Lần cuối <SortIcon col="mtime" />
+                <Th width={120} onClick={() => toggleSort('mtime')} clickable align="right">
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Lần cuối <SortIcon col="mtime" /></span>
                 </Th>
-                <Th width={80} />
+                <Th width={44} />
               </tr>
             </thead>
             <tbody>
@@ -172,51 +179,36 @@ const SystemCache: React.FC = () => {
           padding: '6px 24px', borderTop: '1px solid #1a1a1a', flexShrink: 0,
           display: 'flex', gap: 16, alignItems: 'center',
         }}>
-          <span style={{ color: '#333', fontSize: 11 }}>{sorted.length} mục</span>
+          <span style={{ color: '#5a5a5a', fontSize: 11 }}>{sorted.length} mục</span>
           {selected.size > 0 && (
             <span style={{ color: '#06b6d4', fontSize: 11 }}>
               Đã chọn {selected.size} ({formatBytes(selectedSize)})
             </span>
           )}
           <span style={{ flex: 1 }} />
-          <span style={{ color: '#222', fontSize: 11 }}>
-            ⚠ Chuyển vào Trash — có thể khôi phục
-          </span>
+          <span style={{ color: '#3d3d3d', fontSize: 11 }}>⚠ Chuyển vào Trash — có thể khôi phục</span>
         </div>
       )}
     </div>
   )
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-function PageHeader({ title, subtitle, color }: { title: string; subtitle: string; color: string }) {
-  return (
-    <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0', marginBottom: 3 }}>{title}</h2>
-      <div style={{ color: color + '99', fontSize: 11, fontFamily: 'monospace' }}>{subtitle}</div>
-    </div>
-  )
-}
-
-function Btn({ children, onClick, disabled, primary, danger }: {
-  children: React.ReactNode
-  onClick: () => void
-  disabled?: boolean
-  primary?: boolean
-  danger?: boolean
+function Btn({ children, onClick, disabled, color }: {
+  children: React.ReactNode; onClick: () => void; disabled?: boolean; color: string
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: '6px 14px', borderRadius: 7, border: 'none',
+        padding: '6px 13px', borderRadius: 7, border: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontSize: 12, fontWeight: 500,
-        background: disabled ? '#1a1a1a' : primary ? '#06b6d4' : danger ? '#ef4444' : '#2a2a2a',
-        color: disabled ? '#333' : '#fff',
-        display: 'flex', alignItems: 'center', gap: 5,
+        background: disabled ? '#1d1d1d' : color,
+        color: disabled ? '#4a4a4a' : '#fff',
+        display: 'flex', alignItems: 'center', gap: 6, opacity: disabled ? 0.7 : 1,
       }}
     >
       {children}
@@ -224,18 +216,19 @@ function Btn({ children, onClick, disabled, primary, danger }: {
   )
 }
 
-function Th({ children, width, onClick, style }: {
+function Th({ children, width, onClick, clickable, align }: {
   children?: React.ReactNode; width?: number
-  onClick?: () => void; style?: React.CSSProperties
+  onClick?: () => void; clickable?: boolean; align?: 'left' | 'right'
 }) {
   return (
     <th
       onClick={onClick}
       style={{
-        padding: '8px 12px', textAlign: 'left', color: '#444',
-        fontSize: 11, fontWeight: 600, letterSpacing: 0.5,
+        padding: '8px 12px', textAlign: align ?? 'left', color: '#5a5a5a',
+        fontSize: 11, fontWeight: 600, letterSpacing: 0.4,
         borderBottom: '1px solid #1a1a1a',
-        width: width, userSelect: 'none', ...style,
+        width, userSelect: 'none',
+        cursor: clickable ? 'pointer' : 'default',
       }}
     >{children}</th>
   )
@@ -249,10 +242,10 @@ function CacheRow({ entry, selected, onToggle, onReveal }: {
     <tr
       style={{
         backgroundColor: selected ? '#06b6d412' : 'transparent',
-        borderBottom: '1px solid #111',
+        borderBottom: '1px solid #151515',
         cursor: 'default',
       }}
-      onMouseEnter={(e) => { if (!selected) e.currentTarget.style.backgroundColor = '#ffffff05' }}
+      onMouseEnter={(e) => { if (!selected) e.currentTarget.style.backgroundColor = '#ffffff06' }}
       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = selected ? '#06b6d412' : 'transparent' }}
     >
       <td style={{ padding: '7px 12px', width: 40 }}>
@@ -260,22 +253,24 @@ function CacheRow({ entry, selected, onToggle, onReveal }: {
       </td>
       <td style={{ padding: '7px 12px' }}>
         <div style={{ color: '#d0d0d0', fontSize: 12 }}>{entry.name}</div>
-        <div style={{ color: '#2a2a2a', fontSize: 10, fontFamily: 'monospace', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>
+        <div style={{ color: '#525252', fontSize: 10, fontFamily: 'monospace', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>
           {entry.path}
         </div>
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <SizeBar size={entry.size} />
       </td>
-      <td style={{ padding: '7px 12px', textAlign: 'right', color: '#444', fontSize: 11 }}>
+      <td style={{ padding: '7px 12px', textAlign: 'right', color: '#6b6b6b', fontSize: 11 }}>
         {timeAgo(entry.mtime)}
       </td>
       <td style={{ padding: '7px 12px', textAlign: 'right' }}>
         <button
           onClick={onReveal}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2a2a2a', fontSize: 13 }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a4a4a', display: 'flex', alignItems: 'center' }}
           title="Hiện trong Finder"
-        >⎋</button>
+        >
+          <FolderOpen size={13} />
+        </button>
       </td>
     </tr>
   )
@@ -283,7 +278,7 @@ function CacheRow({ entry, selected, onToggle, onReveal }: {
 
 function SizeBar({ size }: { size: number }) {
   const mb = size / 1024 / 1024
-  const color = mb > 500 ? '#ef4444' : mb > 100 ? '#f59e0b' : mb > 10 ? '#06b6d4' : '#333'
+  const color = mb > 500 ? '#ef4444' : mb > 100 ? '#f59e0b' : mb > 10 ? '#06b6d4' : '#666'
   return (
     <span style={{ color, fontWeight: mb > 100 ? 700 : 400, fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>
       {formatBytes(size)}
@@ -295,22 +290,24 @@ function EmptyState({ isScanning, onScan }: { isScanning: boolean; onScan: () =>
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 12, color: '#333',
+      alignItems: 'center', justifyContent: 'center', gap: 12, color: '#3a3a3a',
     }}>
       {isScanning ? (
         <>
-          <div style={{ fontSize: 40 }} className="animate-spin-slow">⟳</div>
-          <div style={{ fontSize: 13 }}>Đang quét cache...</div>
+          <Database size={44} color="#a855f750" strokeWidth={1} />
+          <div style={{ fontSize: 13, color: '#666' }}>Đang quét cache...</div>
         </>
       ) : (
         <>
-          <div style={{ fontSize: 48 }}>🗄</div>
-          <div style={{ fontSize: 14, color: '#555' }}>Chưa quét</div>
-          <div style={{ fontSize: 12 }}>Nhấn "Quét cache" để bắt đầu</div>
+          <Database size={48} color="#2a2a2a" strokeWidth={1} />
+          <div style={{ fontSize: 14, color: '#666' }}>Chưa quét</div>
+          <div style={{ fontSize: 12, color: '#4a4a4a' }}>Nhấn "Quét cache" để bắt đầu</div>
           <button
             onClick={onScan}
-            style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#a855f7', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-          >🔎 Quét ngay</button>
+            style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#a855f7', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Search size={13} /> Quét ngay
+          </button>
         </>
       )}
     </div>

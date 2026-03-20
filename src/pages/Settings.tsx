@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Save, AlertTriangle } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 
 const Settings: React.FC = () => {
@@ -33,10 +34,10 @@ const Settings: React.FC = () => {
     <div style={{ height: '100%', overflow: 'auto', padding: 28 }}>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>Cài đặt</h2>
-        <p style={{ color: '#444', fontSize: 12, marginTop: 4 }}>Cấu hình hành vi quét và dọn dẹp</p>
+        <p style={{ color: '#5a5a5a', fontSize: 12, marginTop: 4 }}>Cấu hình hành vi quét và dọn dẹp</p>
       </div>
 
-      <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Scan roots */}
         <Section title="Thư mục quét node_modules" desc="Mỗi dòng một path. Mặc định: home folder">
           <textarea
@@ -45,7 +46,7 @@ const Settings: React.FC = () => {
             rows={4}
             style={{
               width: '100%', background: '#1a1a1a', color: '#d0d0d0',
-              border: '1px solid #2a2a2a', borderRadius: 7, padding: '8px 10px',
+              border: '1px solid #282828', borderRadius: 7, padding: '8px 10px',
               fontSize: 12, fontFamily: 'monospace', resize: 'vertical', outline: 'none',
             }}
           />
@@ -59,9 +60,9 @@ const Settings: React.FC = () => {
               value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
               min={10} max={10000}
-              style={{ width: 100, background: '#1a1a1a', color: '#d0d0d0', border: '1px solid #2a2a2a', borderRadius: 7, padding: '6px 10px', fontSize: 13 }}
+              style={{ width: 100, background: '#1a1a1a', color: '#d0d0d0', border: '1px solid #282828', borderRadius: 7, padding: '6px 10px', fontSize: 13, outline: 'none' }}
             />
-            <span style={{ color: '#444', fontSize: 12 }}>MB</span>
+            <span style={{ color: '#5a5a5a', fontSize: 12 }}>MB</span>
           </div>
         </Section>
 
@@ -73,29 +74,33 @@ const Settings: React.FC = () => {
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
               min={1} max={365}
-              style={{ width: 100, background: '#1a1a1a', color: '#d0d0d0', border: '1px solid #2a2a2a', borderRadius: 7, padding: '6px 10px', fontSize: 13 }}
+              style={{ width: 100, background: '#1a1a1a', color: '#d0d0d0', border: '1px solid #282828', borderRadius: 7, padding: '6px 10px', fontSize: 13, outline: 'none' }}
             />
-            <span style={{ color: '#444', fontSize: 12 }}>ngày</span>
+            <span style={{ color: '#5a5a5a', fontSize: 12 }}>ngày</span>
           </div>
         </Section>
 
         {/* Safety note */}
-        <div style={{ padding: '12px 16px', borderRadius: 8, backgroundColor: '#1a1300', border: '1px solid #f59e0b22', fontSize: 12, color: '#f59e0b88', lineHeight: 1.6 }}>
-          ⚠ CleanTool luôn chuyển file vào <strong style={{ color: '#f59e0b' }}>Trash</strong> thay vì xóa vĩnh viễn.
-          Bạn có thể khôi phục bất kỳ lúc nào từ Trash trong Finder.
+        <div style={{ padding: '12px 16px', borderRadius: 8, backgroundColor: '#1a1300', border: '1px solid #f59e0b1a', fontSize: 12, color: '#f59e0b88', lineHeight: 1.6, display: 'flex', gap: 10 }}>
+          <AlertTriangle size={14} color="#f59e0b88" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            CleanTool luôn chuyển file vào <strong style={{ color: '#f59e0b' }}>Trash</strong> thay vì xóa vĩnh viễn.
+            Bạn có thể khôi phục bất kỳ lúc nào từ Trash trong Finder.
+          </span>
         </div>
 
         {/* Save button */}
         <button
           onClick={save}
           style={{
-            alignSelf: 'flex-start', padding: '8px 22px', borderRadius: 8, border: 'none',
+            alignSelf: 'flex-start', padding: '8px 20px', borderRadius: 8, border: 'none',
             cursor: 'pointer', fontSize: 13, fontWeight: 600,
             background: saved ? '#22c55e' : '#06b6d4', color: '#fff',
-            transition: 'background 0.2s',
+            transition: 'background 0.2s', display: 'flex', alignItems: 'center', gap: 7,
           }}
         >
-          {saved ? '✓ Đã lưu' : '💾 Lưu cài đặt'}
+          <Save size={14} />
+          {saved ? 'Đã lưu!' : 'Lưu cài đặt'}
         </button>
       </div>
     </div>
@@ -105,9 +110,9 @@ const Settings: React.FC = () => {
 function Section({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 10 }}>
         <div style={{ color: '#d0d0d0', fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{title}</div>
-        <div style={{ color: '#444', fontSize: 11 }}>{desc}</div>
+        <div style={{ color: '#5a5a5a', fontSize: 11 }}>{desc}</div>
       </div>
       {children}
     </div>
