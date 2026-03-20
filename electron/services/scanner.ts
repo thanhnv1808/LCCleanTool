@@ -449,7 +449,18 @@ export async function scanDownloads(onProgress?: ProgressCb): Promise<DownloadEn
 
 export async function getTrashInfo(): Promise<TrashInfo> {
   const trashPath = path.join(HOME, '.Trash')
-  const size = await getDirSize(trashPath)
+  let size = 0
+  try {
+    const items = fs.readdirSync(trashPath).filter((n) => n !== '.DS_Store' && n !== '.localized')
+    const sizes = await Promise.all(items.map(async (item) => {
+      const itemPath = path.join(trashPath, item)
+      try {
+        const st = fs.statSync(itemPath)
+        return st.isDirectory() ? getDirSize(itemPath) : Promise.resolve(st.size)
+      } catch { return 0 }
+    }))
+    size = sizes.reduce((a, b) => a + b, 0)
+  } catch { /* no access or empty */ }
   return { size, path: trashPath }
 }
 
