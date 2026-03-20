@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, FileSearch, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { formatBytes, timeAgo } from '../utils/format'
+import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
 import type { LargeFileEntry } from '../types/electron'
 
 type FilterType = 'all' | 'video' | 'disk-image' | 'archive' | 'document' | 'image' | 'other'
@@ -22,7 +22,7 @@ const TYPE_COLOR: Record<string, string> = {
 }
 
 const LargeFiles: React.FC = () => {
-  const { largeFileEntries, setLargeFileEntries, removeLargeFileEntries, scanning, setScanning, scanProgress, settings } = useAppStore()
+  const { largeFileEntries, setLargeFileEntries, removeLargeFileEntries, scanning, setScanning, scanProgress, settings, scanTimestamps } = useAppStore()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cleaning, setCleaning] = useState(false)
   const [lastResult, setLastResult] = useState<{ freed: number; failed: number } | null>(null)
@@ -41,6 +41,8 @@ const LargeFiles: React.FC = () => {
     try {
       const entries = await window.electronAPI.scanLargeFiles(thresholdMB)
       setLargeFileEntries(entries)
+      useAppStore.getState().setScanTimestamp('largeFiles', Date.now())
+      window.electronAPI.saveResultsCache('largeFiles', entries).catch(() => {})
     } finally {
       setScanning('largeFiles', false)
     }
@@ -55,6 +57,7 @@ const LargeFiles: React.FC = () => {
       setSelected(new Set())
       setLastResult({ freed: result.freedBytes, failed: result.failed.length })
       window.electronAPI.getDiskInfo().then(useAppStore.getState().setDiskInfo).catch(() => {})
+      window.electronAPI.saveResultsCache('largeFiles', useAppStore.getState().largeFileEntries).catch(() => {})
     } finally {
       setCleaning(false)
     }
@@ -106,6 +109,9 @@ const LargeFiles: React.FC = () => {
         </div>
         <div style={{ color: '#ef444477', fontSize: 11, fontFamily: 'monospace', paddingLeft: 23 }}>
           ~ home folder · &gt; {thresholdMB} MB · {largeFileEntries.length} file tìm thấy
+          {scanTimestamps['largeFiles'] && !isScanning && (
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['largeFiles'])}</span>
+          )}
         </div>
       </div>
 

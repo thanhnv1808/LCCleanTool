@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Trash2, FolderOpen, Download } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import { formatBytes, timeAgo } from '../utils/format'
+import { formatBytes, timeAgo, scanTimestampLabel } from '../utils/format'
 import type { DownloadEntry } from '../types/electron'
 
 type FilterType = 'all' | 'dmg' | 'archive' | 'video' | 'document' | 'image' | 'other'
@@ -19,7 +19,7 @@ const TYPE_COLOR: Record<string, string> = {
 const Downloads: React.FC = () => {
   const {
     downloadEntries, setDownloadEntries, removeDownloadEntries,
-    setTrashInfo, scanning, setScanning, scanProgress,
+    setTrashInfo, scanning, setScanning, scanProgress, scanTimestamps,
   } = useAppStore()
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -37,6 +37,8 @@ const Downloads: React.FC = () => {
     try {
       const entries = await window.electronAPI.scanDownloads()
       setDownloadEntries(entries)
+      useAppStore.getState().setScanTimestamp('downloads', Date.now())
+      window.electronAPI.saveResultsCache('downloads', entries).catch(() => {})
     } finally {
       setScanning('downloads', false)
     }
@@ -53,6 +55,7 @@ const Downloads: React.FC = () => {
       const [disk, trash] = await Promise.all([window.electronAPI.getDiskInfo(), window.electronAPI.getTrashInfo()])
       useAppStore.getState().setDiskInfo(disk)
       setTrashInfo(trash)
+      window.electronAPI.saveResultsCache('downloads', useAppStore.getState().downloadEntries).catch(() => {})
     } finally {
       setCleaning(false)
     }
@@ -88,6 +91,9 @@ const Downloads: React.FC = () => {
         </div>
         <p style={{ color: '#22c55e77', fontSize: 11, fontFamily: 'monospace', marginBottom: 16, paddingLeft: 23 }}>
           ~/Downloads
+          {scanTimestamps['downloads'] && !isScanning && (
+            <span style={{ color: '#3a3a3a', marginLeft: 8 }}>· {scanTimestampLabel(scanTimestamps['downloads'])}</span>
+          )}
         </p>
       </div>
 

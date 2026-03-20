@@ -13,6 +13,15 @@ export function formatDate(ms: number): string {
   })
 }
 
+export function scanTimestampLabel(ts: number): string {
+  const d = new Date(ts)
+  const HH = d.getHours().toString().padStart(2, '0')
+  const mm = d.getMinutes().toString().padStart(2, '0')
+  const mins = Math.floor((Date.now() - ts) / 60000)
+  const ago = mins < 1 ? 'vừa xong' : mins < 60 ? `${mins} phút trước` : `${Math.floor(mins / 60)} giờ trước`
+  return `Quét lúc ${HH}:${mm} · ${ago}`
+}
+
 export function timeAgo(ms: number): string {
   if (!ms) return '—'
   const diff = Date.now() - ms

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu } from 'electron'
 import path from 'path'
 import {
   getDiskInfo, scanCaches, scanDevTools, quickScan, findNodeModules,
@@ -6,8 +6,13 @@ import {
 } from './services/scanner'
 import { moveToTrash, emptyTrash, deleteDSStores } from './services/cleaner'
 import { getSettings, saveSettings } from './services/settings'
+import { getScanCache, saveScanCache, clearScanCache, ScanCache } from './services/scanCache'
+import { getResultsCache, saveResultsCache, clearResultsCache, ScanKey } from './services/resultsCache'
+import type { QuickScanResult } from './preload'
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let trayWindow: BrowserWindow | null = null
 
 function createWindow() {
   const isDev = !app.isPackaged
@@ -30,14 +35,108 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
 
+  // Hide instead of close when tray is active (keep app alive in menu bar)
+  mainWindow.on('close', (e) => {
+    if (tray) {
+      e.preventDefault()
+      mainWindow?.hide()
+    }
+  })
+
   if (isDev) mainWindow.loadURL('http://localhost:5173')
   else mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
 }
 
+function createTrayWindow() {
+  const isDev = !app.isPackaged
+
+  trayWindow = new BrowserWindow({
+    width: 340,
+    height: 430,
+    show: false,
+    frame: false,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    transparent: true,
+    vibrancy: 'popover',
+    visualEffectState: 'active',
+    roundedCorners: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  trayWindow.on('blur', () => trayWindow?.hide())
+
+  if (isDev) trayWindow.loadURL('http://localhost:5173/#tray')
+  else trayWindow.loadFile(path.join(__dirname, '../dist/index.html'), { hash: 'tray' })
+}
+
+function setupTray() {
+  const isDev = !app.isPackaged
+  const iconPath = isDev
+    ? path.join(__dirname, '../build/icon.iconset/icon_16x16.png')
+    : path.join(process.resourcesPath, 'icon_16x16.png')
+
+  tray = new Tray(iconPath)
+  tray.setToolTip('CleanTool')
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Mở CleanTool',
+      click: () => {
+        if (!mainWindow) createWindow()
+        else { mainWindow.show(); mainWindow.focus() }
+        trayWindow?.hide()
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Thoát',
+      click: () => {
+        tray?.destroy()
+        app.quit()
+      },
+    },
+  ])
+
+  tray.on('click', (_e, bounds) => {
+    if (trayWindow?.isVisible()) {
+      trayWindow.hide()
+      return
+    }
+
+    const { x, y } = bounds
+    const { width, height } = trayWindow!.getBounds()
+    const xPos = Math.round(x - width / 2 + bounds.width / 2)
+    const yPos = process.platform === 'darwin' ? Math.round(y + bounds.height) : Math.round(y - height)
+
+    trayWindow!.setPosition(xPos, yPos)
+    trayWindow!.show()
+    trayWindow!.webContents.send('tray:focus')
+  })
+
+  tray.on('right-click', () => {
+    tray?.popUpContextMenu(contextMenu)
+  })
+}
+
 app.whenReady().then(() => {
   createWindow()
+  createTrayWindow()
+  setupTray()
+
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (mainWindow) {
+      mainWindow.show()
+      mainWindow.focus()
+    } else {
+      createWindow()
+    }
   })
 })
 
@@ -84,7 +183,12 @@ ipcMain.handle('scan:nodeModules', async (_e, roots: string[]) => {
 
 // ─── Clean (move to trash) ──────────────────────────────────────────────────
 ipcMain.handle('clean:moveToTrash', async (_e, paths: string[]) => {
-  return moveToTrash(paths)
+  const result = await moveToTrash(paths)
+  if (result.success.length > 0) {
+    clearScanCache()
+    trayWindow?.webContents.send('tray:cacheCleared')
+  }
+  return result
 })
 
 // ─── Settings ───────────────────────────────────────────────────────────────
@@ -113,10 +217,32 @@ ipcMain.handle('scan:downloads', async () => {
 
 ipcMain.handle('disk:trashInfo', async () => getTrashInfo())
 
-ipcMain.handle('clean:emptyTrash', async () => emptyTrash())
+ipcMain.handle('clean:emptyTrash', async () => {
+  const result = await emptyTrash()
+  clearScanCache()
+  trayWindow?.webContents.send('tray:cacheCleared')
+  return result
+})
 
 ipcMain.handle('clean:deleteDSStores', async () => deleteDSStores())
 
 // ─── Shell ──────────────────────────────────────────────────────────────────
 ipcMain.handle('shell:openPath', (_e, p: string) => shell.openPath(p))
 ipcMain.handle('shell:showItemInFolder', (_e, p: string) => shell.showItemInFolder(p))
+
+// ─── Tray ─────────────────────────────────────────────────────────────────
+ipcMain.handle('tray:openMainWindow', () => {
+  if (!mainWindow) createWindow()
+  else { mainWindow.show(); mainWindow.focus() }
+  trayWindow?.hide()
+})
+
+// ─── Scan Cache (tray quick totals) ──────────────────────────────────────
+ipcMain.handle('cache:getScan', (): ScanCache | null => getScanCache())
+ipcMain.handle('cache:saveScan', (_e, result: QuickScanResult): ScanCache => saveScanCache(result))
+ipcMain.handle('cache:clearScan', () => clearScanCache())
+
+// ─── Results Cache (detailed entries for main app) ────────────────────────
+ipcMain.handle('cache:getResults', () => getResultsCache())
+ipcMain.handle('cache:saveResults', (_e, key: ScanKey, entries: unknown[]) => saveResultsCache(key, entries))
+ipcMain.handle('cache:clearResults', (_e, key?: ScanKey) => clearResultsCache(key))
